@@ -712,6 +712,7 @@ class BaseSession(SessionInterface):
       device_list.append(
           _DeviceAttributes(name, device_type, memory, incarnation))
     tf_session.TF_DeleteDeviceList(raw_device_list)
+    print("From python/clien/session.py ", device_list)
     return device_list
 
   def close(self):

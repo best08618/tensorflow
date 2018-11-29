@@ -43,6 +43,7 @@ enum class PlatformKind {
   kOpenCL,
   kHost,
   kMock,
+  kSGX,
   kSize,
 };
 

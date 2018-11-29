@@ -281,11 +281,10 @@ def function_to_graph(f,
   node, source = parser.parse_entity(f)
   node = node.body[0]
 
-  # In general, the output of inspect.getsource is inexact because it uses crude
-  # regex matching methods to search the source file. This is particularly
-  # problematic for lambda functions, where the entire containing lines are
-  # returned. Certain distributions of CPython may also return the enclosing
-  # function for local functions.
+  # In general, the output of inspect.getsource is inexact because it uses
+  # regex matching to adjust the exact location around the line number that
+  # CPython records. This is particularly problematic for lambda functions,
+  # where the entire containing lines are returned.
   nodes = ast_util.find_matching_definitions(node, f)
   if len(nodes) != 1:
     if f.__name__ == '<lambda>':
@@ -298,8 +297,8 @@ def function_to_graph(f,
       raise ValueError(
           'Unable to identify source code of function {}. The source code'
           ' reported by Python did not include exactly one matching signature:'
-          '\n{}\nTo avoid ambiguity, use a unique name for each'
-          ' function.'.format(f, source))
+          '\n{}\n. This is an extremely rare occurrence. Please report it to'
+          ' the TensorFlow team.'.format(f, source))
   node, = nodes
 
   # TODO(znado): Place inside standard_analysis.

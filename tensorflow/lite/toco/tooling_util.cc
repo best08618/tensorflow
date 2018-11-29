@@ -308,6 +308,7 @@ const char* OperatorTypeName(OperatorType type) {
 #define HANDLE_OPERATORTYPENAME_CASE(c) \
   case OperatorType::k##c:              \
     return #c;
+    HANDLE_OPERATORTYPENAME_CASE(Abs)
     HANDLE_OPERATORTYPENAME_CASE(Add)
     HANDLE_OPERATORTYPENAME_CASE(AddN)
     HANDLE_OPERATORTYPENAME_CASE(AveragePool)
@@ -371,6 +372,7 @@ const char* OperatorTypeName(OperatorType type) {
     HANDLE_OPERATORTYPENAME_CASE(Shape)
     HANDLE_OPERATORTYPENAME_CASE(Slice)
     HANDLE_OPERATORTYPENAME_CASE(Split)
+    HANDLE_OPERATORTYPENAME_CASE(SplitV)
     HANDLE_OPERATORTYPENAME_CASE(Sqrt)
     HANDLE_OPERATORTYPENAME_CASE(Square)
     HANDLE_OPERATORTYPENAME_CASE(Switch)
@@ -411,6 +413,8 @@ const char* OperatorTypeName(OperatorType type) {
     HANDLE_OPERATORTYPENAME_CASE(ZerosLike)
     HANDLE_OPERATORTYPENAME_CASE(UnidirectionalSequenceLstm)
     HANDLE_OPERATORTYPENAME_CASE(ResizeNearestNeighbor)
+    HANDLE_OPERATORTYPENAME_CASE(LeakyRelu)
+    HANDLE_OPERATORTYPENAME_CASE(SquaredDifference)
     default:
       LOG(FATAL) << "Unhandled op type";
 #undef HANDLE_OPERATORTYPENAME_CASE
@@ -439,6 +443,7 @@ bool OperatorSupportsFusedActivation(OperatorType type) {
     case OperatorType::kMaxPool:
     case OperatorType::kMul:
     case OperatorType::kSub:
+    case OperatorType::kSquaredDifference:
       return true;
     default:
       return false;
@@ -1032,10 +1037,10 @@ void CheckEachArray(const Model& model) {
     if (colon_pos != string::npos) {
       CHECK_EQ(name.substr(colon_pos + 1).find_first_not_of("0123456789"),
                string::npos)
-          << "Array name must only have digits after colon";
+          << "Array '" << name << "' has non-digit characters after colon.";
     }
-    CHECK_GT(colon_pos, 0)
-        << "First character of array name must not be a colon.";
+    CHECK_GT(colon_pos, 0) << "Array '" << name
+                           << "' must not start with a colon.";
   }
 }
 
@@ -1767,6 +1772,14 @@ bool IsAllocatableTransientArray(const Model& model, const string& array_name) {
   if (!array->has_shape()) {
     return false;
   }
+
+  // The size of string tensors is rarely known ahead of time, so all transient
+  // tensors of this type will need to be dynamically allocated.
+  if (array->final_data_type == ArrayDataType::kString ||
+      array->data_type == ArrayDataType::kString) {
+    return false;
+  }
+
   return true;
 }
 
@@ -2207,6 +2220,8 @@ ArrayDataType ConvertIODataTypeToArrayDataType(IODataType type) {
       return ArrayDataType::kFloat;
     case QUANTIZED_UINT8:
       return ArrayDataType::kUint8;
+    case INT8:
+      return ArrayDataType::kInt8;
     case QUANTIZED_INT16:
       return ArrayDataType::kInt16;
     case INT32:

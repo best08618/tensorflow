@@ -85,6 +85,7 @@ CORE_CC_ALL_SRCS := \
 $(wildcard tensorflow/lite/*.cc) \
 $(wildcard tensorflow/lite/*.c) \
 $(wildcard tensorflow/lite/c/*.c) \
+$(wildcard tensorflow/lite/core/*.cc) \
 $(wildcard tensorflow/lite/core/api/*.cc)
 ifneq ($(BUILD_TYPE),micro)
 CORE_CC_ALL_SRCS += \
@@ -207,6 +208,9 @@ $(BENCHMARK_BINARY) : $(BENCHMARK_LIB)
 	$(LIBFLAGS) $(BENCHMARK_LIB) $(LDFLAGS) $(LIBS)
 
 benchmark: $(BENCHMARK_BINARY)
+
+libdir:
+	@echo $(LIBDIR)
 
 # Gets rid of all generated files.
 clean:

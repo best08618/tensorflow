@@ -153,7 +153,7 @@ class ResourceVariableOpsTest(test_util.TensorFlowTestCase):
   def testCachedValueReadBeforeWrite(self):
     with self.cached_session() as sess:
       v = resource_variable_ops.ResourceVariable(0.0, caching_device="cpu:0")
-      sess.run(v.initializer)
+      self.evaluate(v.initializer)
       value, _ = sess.run([v, v.assign_add(1.0)])
       self.assertAllEqual(value, 0.0)
 
@@ -456,7 +456,7 @@ class ResourceVariableOpsTest(test_util.TensorFlowTestCase):
 
   # TODO(alive): get this to work in Eager mode.
   def testGPU(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       abc = variable_scope.get_variable(
           "abc",
           shape=[1],
@@ -568,6 +568,20 @@ class ResourceVariableOpsTest(test_util.TensorFlowTestCase):
     v.load(2.0)
     self.assertEqual(2.0, self.evaluate(v.value()))
 
+  def testToFromProtoCachedValue(self):
+    with ops.Graph().as_default():
+      v_def = resource_variable_ops.ResourceVariable(
+          initial_value=constant_op.constant(3.0)).to_proto()
+      v_prime = resource_variable_ops.ResourceVariable(variable_def=v_def)
+      self.assertTrue(getattr(v_prime, "_cached_value", None) is None)
+
+      other_v_def = resource_variable_ops.ResourceVariable(
+          caching_device="cpu:0",
+          initial_value=constant_op.constant(3.0)).to_proto()
+      other_v_prime = resource_variable_ops.ResourceVariable(
+          variable_def=other_v_def)
+      self.assertTrue(other_v_prime._cached_value is not None)
+
   def testVariableDefInitializedInstances(self):
     with ops.Graph().as_default(), self.cached_session() as sess:
       v_def = resource_variable_ops.ResourceVariable(
@@ -576,11 +590,11 @@ class ResourceVariableOpsTest(test_util.TensorFlowTestCase):
     with ops.Graph().as_default(), self.cached_session() as sess:
       # v describes a VariableDef-based variable without an initial value.
       v = resource_variable_ops.ResourceVariable(variable_def=v_def)
-      self.assertEqual(3.0, sess.run(v.initialized_value()))
+      self.assertEqual(3.0, self.evaluate(v.initialized_value()))
 
       # initialized_value should not rerun the initializer_op if the variable
       # has already been initialized elsewhere.
-      sess.run(v.assign(1.0))
+      self.evaluate(v.assign(1.0))
       self.assertEqual(1.0, v.initialized_value().eval())
 
     v_def.ClearField("initial_value_name")
@@ -592,7 +606,7 @@ class ResourceVariableOpsTest(test_util.TensorFlowTestCase):
       self.assertProtoEquals(v_def, v.to_proto())
       # But attempts to use initialized_value will result in errors.
       with self.assertRaises(ValueError):
-        sess.run(v.initialized_value())
+        self.evaluate(v.initialized_value())
 
   def testTrainableInProto(self):
     with ops.Graph().as_default():
@@ -736,7 +750,7 @@ class ResourceVariableOpsTest(test_util.TensorFlowTestCase):
           # Needed in Eager since we get a unique container name by default.
           container=ops.get_default_graph()._container)
       w_read = resource_variable_ops.read_variable_op(w, v.dtype.base_dtype)
-      self.assertEqual(300.0, w_read.eval())
+      self.assertEqual(300.0, self.evaluate(w_read))
 
       x = resource_variable_ops.var_handle_op(
           dtype=v.dtype.base_dtype, shape=v.get_shape(), shared_name="var5",

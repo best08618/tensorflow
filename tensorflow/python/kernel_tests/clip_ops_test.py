@@ -28,6 +28,7 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import gradient_checker
 from tensorflow.python.ops import gradients_impl
+from tensorflow.python.ops import math_ops
 from tensorflow.python.platform import test
 
 
@@ -55,7 +56,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-4.4, 2.0, 3.0], [4.0, 4.4, 4.4]]
       clip_value = 4.4
       ans = clip_ops.clip_by_value(x, -clip_value, clip_value)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -71,7 +72,7 @@ class ClipTest(test.TestCase):
         clip_value_min = 2
         clip_value_max = 4
         ans = clip_ops.clip_by_value(x, clip_value_min, clip_value_max)
-        tf_ans = ans.eval()
+        tf_ans = self.evaluate(ans)
 
       self.assertAllClose(np_ans, tf_ans)
 
@@ -88,7 +89,7 @@ class ClipTest(test.TestCase):
             [2, 2, 2, 3, 3, 3], shape=[2, 3], dtype=dtype)
         clip_value_max = 4
         ans = clip_ops.clip_by_value(x, clip_value_min, clip_value_max)
-        tf_ans = ans.eval()
+        tf_ans = self.evaluate(ans)
 
       self.assertAllClose(np_ans, tf_ans)
 
@@ -105,7 +106,7 @@ class ClipTest(test.TestCase):
         clip_value_max = constant_op.constant(
             [6, 6, 6, 6, 6, 6], shape=[2, 3], dtype=dtype)
         ans = clip_ops.clip_by_value(x, clip_value_min, clip_value_max)
-        tf_ans = ans.eval()
+        tf_ans = self.evaluate(ans)
 
       self.assertAllClose(np_ans, tf_ans)
 
@@ -123,7 +124,7 @@ class ClipTest(test.TestCase):
         clip_value_max = constant_op.constant(
             [5, 5, 5, 7, 7, 7], shape=[2, 3], dtype=dtype)
         ans = clip_ops.clip_by_value(x, clip_value_min, clip_value_max)
-        tf_ans = ans.eval()
+        tf_ans = self.evaluate(ans)
 
       self.assertAllClose(np_ans, tf_ans)
 
@@ -144,7 +145,7 @@ class ClipTest(test.TestCase):
       np_ans = [float('NaN'), 4.0, -4.0]
       clip_value = 4.0
       ans = clip_ops.clip_by_value(x, -clip_value, clip_value)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -157,10 +158,10 @@ class ClipTest(test.TestCase):
       np_ans = [[-2.4, 0.0, 0.0], [3.2, 0.0, 0.0]]
       clip_norm = 4.0
       ans = clip_ops.clip_by_norm(x, clip_norm)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
       ans = clip_ops.clip_by_norm(x, clip_norm)
-      tf_ans_tensor = ans.eval()
+      tf_ans_tensor = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
     self.assertAllClose(np_ans, tf_ans_tensor)
@@ -188,7 +189,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-3.0, 0.0, 0.0], [4.0, 0.0, 0.0]]
       clip_norm = 6.0
       ans = clip_ops.clip_by_norm(x, clip_norm)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -200,7 +201,7 @@ class ClipTest(test.TestCase):
       np_ans = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
       clip_norm = 6.0
       ans = clip_ops.clip_by_norm(x, clip_norm)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -212,7 +213,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-2.4, 0.0, 0.0], [3.2, 0.0, 3.0]]
       clip_norm = 4.0
       ans = clip_ops.clip_by_norm(x, clip_norm, [0])
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -224,7 +225,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-3.0, 0.0, 0.0], [3.2, 0.0, 2.4]]
       clip_norm = 4.0
       ans = clip_ops.clip_by_norm(x, clip_norm, [1])
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -236,7 +237,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-3.0, 0.0, 0.0], [4.0, 0.0, 3.0]]
       clip_norm = 6.0
       ans = clip_ops.clip_by_norm(x, clip_norm, [1])
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -256,7 +257,7 @@ class ClipTest(test.TestCase):
       ans, norm = clip_ops.clip_by_global_norm((x0, x1), clip_norm)
       tf_ans_1 = ans[0].eval()
       tf_ans_2 = ans[1].eval()
-      tf_norm = norm.eval()
+      tf_norm = self.evaluate(norm)
 
     self.assertAllClose(tf_norm, 5.0)
     self.assertAllClose(np_ans_0, tf_ans_1)
@@ -277,7 +278,7 @@ class ClipTest(test.TestCase):
       ans, norm = clip_ops.clip_by_global_norm((x0, x1), clip_norm)
       tf_ans_1 = ans[0].eval()
       tf_ans_2 = ans[1].eval()
-      tf_norm = norm.eval()
+      tf_norm = self.evaluate(norm)
 
     self.assertAllClose(tf_norm, 5.0)
     self.assertAllClose(np_ans_0, tf_ans_1)
@@ -300,7 +301,7 @@ class ClipTest(test.TestCase):
       self.assertTrue(ans[3] is None)
       tf_ans_1 = ans[0].eval()
       tf_ans_2 = ans[2].eval()
-      tf_norm = norm.eval()
+      tf_norm = self.evaluate(norm)
 
     self.assertAllClose(tf_norm, 5.0)
     self.assertAllClose(np_ans_0, tf_ans_1)
@@ -322,7 +323,7 @@ class ClipTest(test.TestCase):
       ans, norm = clip_ops.clip_by_global_norm([x0, x1], clip_norm)
       tf_ans_1 = ans[0].eval()
       tf_ans_2 = ans[1].values.eval()
-      tf_norm = norm.eval()
+      tf_norm = self.evaluate(norm)
 
     self.assertAllClose(tf_norm, 5.0)
     self.assertAllClose(np_ans_0, tf_ans_1)
@@ -352,7 +353,7 @@ class ClipTest(test.TestCase):
       ans, norm = clip_ops.clip_by_global_norm([x0, x1], clip_norm)
       tf_ans_1 = ans[0].eval()
       tf_ans_2 = ans[1].eval()
-      tf_norm = norm.eval()
+      tf_norm = self.evaluate(norm)
 
     self.assertAllClose(tf_norm, 5.0)
     self.assertAllClose(np_ans_0, tf_ans_1)
@@ -371,7 +372,7 @@ class ClipTest(test.TestCase):
       ans, norm = clip_ops.clip_by_global_norm([x0, x1], clip_norm)
       tf_ans_1 = ans[0].eval()
       tf_ans_2 = ans[1].eval()
-      tf_norm = norm.eval()
+      tf_norm = self.evaluate(norm)
 
     self.assertAllClose(tf_norm, 0.0)
     self.assertAllClose(np_ans_0, tf_ans_1)
@@ -386,7 +387,7 @@ class ClipTest(test.TestCase):
 
       ans, norm = clip_ops.clip_by_global_norm([x0, x1], clip_norm)
       with self.assertRaisesRegexp(errors.InvalidArgumentError, "global norm"):
-        norm.eval()
+        self.evaluate(norm)
       with self.assertRaisesRegexp(errors.InvalidArgumentError, "global norm"):
         ans[0].eval()
       with self.assertRaisesRegexp(errors.InvalidArgumentError, "global norm"):
@@ -400,7 +401,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-2.88, 0.0, 0.0], [3.84, 0.0, 0.0]]
       clip_norm = 0.8
       ans = clip_ops.clip_by_average_norm(x, clip_norm)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -412,7 +413,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-2.88, 0.0, 0.0], [3.84, 0.0, 0.0]]
       clip_norm = constant_op.constant(0.8)
       ans = clip_ops.clip_by_average_norm(x, clip_norm)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -424,7 +425,7 @@ class ClipTest(test.TestCase):
       np_ans = [[-3.0, 0.0, 0.0], [4.0, 0.0, 0.0]]
       clip_norm = 0.9
       ans = clip_ops.clip_by_average_norm(x, clip_norm)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
 
@@ -436,9 +437,24 @@ class ClipTest(test.TestCase):
       np_ans = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
       clip_norm = 0.9
       ans = clip_ops.clip_by_average_norm(x, clip_norm)
-      tf_ans = ans.eval()
+      tf_ans = self.evaluate(ans)
 
     self.assertAllClose(np_ans, tf_ans)
+
+  def testClipByAverageNormReplacedWithClipByNorm(self):
+    # Check clip_by_average_norm(t) is the same as
+    # clip_by_norm(t, clip_norm * tf.to_float(tf.size(t)))
+    with self.session(use_gpu=True):
+      x = constant_op.constant([-3.0, 0.0, 0.0, 4.0, 0.0, 0.0], shape=[2, 3])
+      # Average norm of x = sqrt(3^2 + 4^2) / 6 = 0.83333333
+      # expected answer [[-2.88, 0.0, 0.0], [3.84, 0.0, 0.0]]
+      clip_norm = constant_op.constant(0.8)
+      with_norm = clip_ops.clip_by_average_norm(x, clip_norm)
+      without_norm = clip_ops.clip_by_norm(
+          x, clip_norm * math_ops.to_float(array_ops.size(x)))
+      clip_by_average_norm_ans = self.evaluate(with_norm)
+      clip_by_norm_ans = self.evaluate(without_norm)
+      self.assertAllClose(clip_by_average_norm_ans, clip_by_norm_ans)
 
   def testClipByValueEmptyTensor(self):
     # Test case for GitHub issue 19337

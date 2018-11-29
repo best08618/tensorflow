@@ -40,7 +40,7 @@ class DecodeImageOpTest(test.TestCase):
       bmp0 = io_ops.read_file(path)
       image0 = image_ops.decode_image(bmp0)
       image1 = image_ops.decode_bmp(bmp0)
-      bmp0, image0, image1 = sess.run([bmp0, image0, image1])
+      bmp0, image0, image1 = self.evaluate([bmp0, image0, image1])
       self.assertEqual(len(bmp0), 4194)
       self.assertAllEqual(image0, image1)
 
@@ -56,7 +56,7 @@ class DecodeImageOpTest(test.TestCase):
       gif0 = io_ops.read_file(path)
       image0 = image_ops.decode_image(gif0)
       image1 = image_ops.decode_gif(gif0)
-      gif0, image0, image1 = sess.run([gif0, image0, image1])
+      gif0, image0, image1 = self.evaluate([gif0, image0, image1])
 
       self.assertEqual(image0.shape, shape)
       self.assertAllEqual(image0, image1)
@@ -76,7 +76,7 @@ class DecodeImageOpTest(test.TestCase):
 
         bad_channels = image_ops.decode_image(gif0, channels=1)
         with self.assertRaises(errors_impl.InvalidArgumentError):
-          bad_channels.eval()
+          self.evaluate(bad_channels)
 
   def testJpeg(self):
     # Read a real jpeg and verify shape
@@ -85,14 +85,14 @@ class DecodeImageOpTest(test.TestCase):
       jpeg0 = io_ops.read_file(path)
       image0 = image_ops.decode_image(jpeg0)
       image1 = image_ops.decode_jpeg(jpeg0)
-      jpeg0, image0, image1 = sess.run([jpeg0, image0, image1])
+      jpeg0, image0, image1 = self.evaluate([jpeg0, image0, image1])
       self.assertEqual(len(jpeg0), 3771)
       self.assertEqual(image0.shape, (256, 128, 3))
       self.assertAllEqual(image0, image1)
 
       bad_channels = image_ops.decode_image(jpeg0, channels=4)
       with self.assertRaises(errors_impl.InvalidArgumentError):
-        bad_channels.eval()
+        self.evaluate(bad_channels)
 
   def testPng(self):
     # Read some real PNGs, converting to different channel numbers
@@ -104,7 +104,7 @@ class DecodeImageOpTest(test.TestCase):
           png0 = io_ops.read_file(path)
           image0 = image_ops.decode_image(png0, channels=channels)
           image1 = image_ops.decode_png(png0, channels=channels)
-          png0, image0, image1 = sess.run([png0, image0, image1])
+          png0, image0, image1 = self.evaluate([png0, image0, image1])
           self.assertEqual(image0.shape, (26, 51, channels or channels_in))
           self.assertAllEqual(image0, image1)
 
@@ -113,7 +113,7 @@ class DecodeImageOpTest(test.TestCase):
     decode = image_ops.decode_image(image_bytes)
     with self.cached_session():
       with self.assertRaises(errors_impl.InvalidArgumentError):
-        decode.eval()
+        self.evaluate(decode)
 
 
 if __name__ == "__main__":

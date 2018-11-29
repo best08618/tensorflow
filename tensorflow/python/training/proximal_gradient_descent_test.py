@@ -50,7 +50,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
       update = opt.apply_gradients(zip([grads0, grads1], [var0, var1]))
       variables.global_variables_initializer().run()
 
-      v0_val, v1_val = sess.run([var0, var1])
+      v0_val, v1_val = self.evaluate([var0, var1])
       self.assertAllClose([0.0, 0.0], v0_val)
       self.assertAllClose([0.0, 0.0], v1_val)
 
@@ -58,7 +58,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
       for _ in range(3):
         update.run()
 
-      v0_val, v1_val = sess.run([var0, var1])
+      v0_val, v1_val = self.evaluate([var0, var1])
       self.assertAllClose(np.array([-0.9, -1.8]), v0_val)
       self.assertAllClose(np.array([-0.09, -0.18]), v1_val)
 
@@ -80,7 +80,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
       update = opt.apply_gradients(zip([grads0, grads1], [var0, var1]))
       variables.global_variables_initializer().run()
 
-      v0_val, v1_val = sess.run([var0, var1])
+      v0_val, v1_val = self.evaluate([var0, var1])
       self.assertAllClose([1.0, 2.0], v0_val)
       self.assertAllClose([4.0, 3.0], v1_val)
 
@@ -88,7 +88,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
       for _ in range(3):
         update.run()
 
-      v0_val, v1_val = sess.run([var0, var1])
+      v0_val, v1_val = self.evaluate([var0, var1])
       self.assertAllClose(np.array([0.1, 0.2]), v0_val)
       self.assertAllClose(np.array([3.91, 2.82]), v1_val)
 
@@ -103,12 +103,13 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
             1.0).minimize(loss)
         variables.global_variables_initializer().run()
         # Fetch params to validate initial values
-        self.assertAllCloseAccordingToType([[1.0, 2.0]], var0.eval())
+        self.assertAllCloseAccordingToType([[1.0, 2.0]], self.evaluate(var0))
         # Run 1 step of sgd
         sgd_op.run()
         # Validate updated params
-        self.assertAllCloseAccordingToType(
-            [[-111, -138]], var0.eval(), atol=0.01)
+        self.assertAllCloseAccordingToType([[-111, -138]],
+                                           self.evaluate(var0),
+                                           atol=0.01)
 
   def testProximalGradientDescentWithL1_L2(self):
     with self.cached_session() as sess:
@@ -122,7 +123,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
       update = opt.apply_gradients(zip([grads0, grads1], [var0, var1]))
       variables.global_variables_initializer().run()
 
-      v0_val, v1_val = sess.run([var0, var1])
+      v0_val, v1_val = self.evaluate([var0, var1])
       self.assertAllClose([1.0, 2.0], v0_val)
       self.assertAllClose([4.0, 3.0], v1_val)
 
@@ -130,7 +131,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
       for _ in range(10):
         update.run()
 
-      v0_val, v1_val = sess.run([var0, var1])
+      v0_val, v1_val = self.evaluate([var0, var1])
       self.assertAllClose(np.array([-0.0495, -0.0995]), v0_val)
       self.assertAllClose(np.array([-0.0045, -0.0095]), v1_val)
 
@@ -158,7 +159,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
     variables.global_variables_initializer().run()
 
     sess = ops.get_default_session()
-    v0_val, v1_val = sess.run([var0, var1])
+    v0_val, v1_val = self.evaluate([var0, var1])
     if is_sparse:
       self.assertAllClose([[1.0], [2.0]], v0_val)
       self.assertAllClose([[3.0], [4.0]], v1_val)
@@ -170,7 +171,7 @@ class ProximalGradientDescentOptimizerTest(test.TestCase):
     for _ in range(steps):
       update.run()
 
-    v0_val, v1_val = sess.run([var0, var1])
+    v0_val, v1_val = self.evaluate([var0, var1])
     return v0_val, v1_val
 
   def testEquivSparseGradientDescentwithoutRegularization(self):

@@ -24,6 +24,7 @@ from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import errors
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
+from tensorflow.python.framework import test_util
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_state_ops
 from tensorflow.python.ops import math_ops
@@ -46,7 +47,7 @@ class VariableOpTest(test.TestCase):
       p = state_ops.variable_op(x.shape, tftype)
       op = state_ops.assign(p, x)
       op.op.run()
-      return p.eval()
+      return self.evaluate(p)
 
   def _testTypes(self, vals):
     for dtype in [np.float32, np.float64, np.int32, np.int64]:
@@ -164,23 +165,23 @@ class VariableOpTest(test.TestCase):
     self.assertEqual(tensor_shape.unknown_shape(), subbed.get_shape())
 
   def testTemporaryVariable(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       var = gen_state_ops.temporary_variable(
           [1, 2], dtypes.float32, var_name="foo")
       var = state_ops.assign(var, [[4.0, 5.0]])
       var = state_ops.assign_add(var, [[6.0, 7.0]])
       final = gen_state_ops.destroy_temporary_variable(var, var_name="foo")
-      self.assertAllClose([[10.0, 12.0]], final.eval())
+      self.assertAllClose([[10.0, 12.0]], self.evaluate(final))
 
   def testDestroyNonexistentTemporaryVariable(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       var = gen_state_ops.temporary_variable([1, 2], dtypes.float32)
       final = gen_state_ops.destroy_temporary_variable(var, var_name="bad")
       with self.assertRaises(errors.NotFoundError):
-        final.eval()
+        self.evaluate(final)
 
   def testDuplicateTemporaryVariable(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       var1 = gen_state_ops.temporary_variable(
           [1, 2], dtypes.float32, var_name="dup")
       var1 = state_ops.assign(var1, [[1.0, 2.0]])
@@ -189,47 +190,47 @@ class VariableOpTest(test.TestCase):
       var2 = state_ops.assign(var2, [[3.0, 4.0]])
       final = var1 + var2
       with self.assertRaises(errors.AlreadyExistsError):
-        final.eval()
+        self.evaluate(final)
 
   def testDestroyTemporaryVariableTwice(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       var = gen_state_ops.temporary_variable([1, 2], dtypes.float32)
       val1 = gen_state_ops.destroy_temporary_variable(var, var_name="dup")
       val2 = gen_state_ops.destroy_temporary_variable(var, var_name="dup")
       final = val1 + val2
       with self.assertRaises(errors.NotFoundError):
-        final.eval()
+        self.evaluate(final)
 
   def testTemporaryVariableNoLeak(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       var = gen_state_ops.temporary_variable(
           [1, 2], dtypes.float32, var_name="bar")
       final = array_ops.identity(var)
-      final.eval()
+      self.evaluate(final)
 
   def testTwoTemporaryVariablesNoLeaks(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       var1 = gen_state_ops.temporary_variable(
           [1, 2], dtypes.float32, var_name="var1")
       var2 = gen_state_ops.temporary_variable(
           [1, 2], dtypes.float32, var_name="var2")
       final = var1 + var2
-      final.eval()
+      self.evaluate(final)
 
   def testAssignDependencyAcrossDevices(self):
-    with self.test_session(use_gpu=True):
+    with test_util.use_gpu():
       # The variable and an op to increment it are on the GPU.
       var = state_ops.variable_op([1], dtypes.float32)
-      state_ops.assign(var, [1.0]).eval()
+      self.evaluate(state_ops.assign(var, [1.0]))
       increment = state_ops.assign_add(var, [1.0])
       with ops.control_dependencies([increment]):
-        with ops.device("/cpu:0"):
+        with test_util.force_cpu():
           # This mul op is pinned to the CPU, but reads the variable from the
           # GPU. The test ensures that the dependency on 'increment' is still
           # honored, i.e., the Send and Recv from GPU to CPU should take place
           # only after the increment.
           result = math_ops.multiply(var, var)
-      self.assertAllClose([4.0], result.eval())
+      self.assertAllClose([4.0], self.evaluate(result))
 
   def testIsVariableInitialized(self):
     for use_gpu in [True, False]:

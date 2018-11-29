@@ -76,7 +76,7 @@ class ScatterAddSubTest(test.TestCase):
       # p = init
       variables.global_variables_initializer().run()
       # p += vals
-      result = p2.eval()
+      result = self.evaluate(p2)
     # Compute the expected 'p' using numpy operations.
     for i, ind in enumerate(indices):
       if scatter_op == state_ops.scatter_add:
@@ -278,7 +278,7 @@ class EmbeddingLookupTest(test.TestCase):
       norms = math_ops.sqrt(
           math_ops.reduce_sum(embeddings * embeddings, axis=1))
       normalized = embeddings / array_ops.stack([norms, norms], axis=1)
-      self.assertAllEqual(embedding.eval(), 2 * normalized.eval())
+      self.assertAllEqual(embedding.eval(), 2 * self.evaluate(normalized))
 
   def testSimpleShardedPartitionedVariable(self):
     with self.cached_session() as sess:
@@ -294,7 +294,7 @@ class EmbeddingLookupTest(test.TestCase):
       variables.global_variables_initializer().run()
       params_values = [params[p_i.name] for p_i in p]
       # Test that the PartitionedVariable components equal the list in p
-      p_var_val = sess.run(list(p_variable))
+      p_var_val = self.evaluate(list(p_variable))
       # Actual test
       tf_result = embedding.eval(feed_dict=feed_dict)
     np_result, _, _ = _EmbeddingResult(params, id_vals, num_shards, vocab_size)
@@ -316,10 +316,10 @@ class EmbeddingLookupTest(test.TestCase):
       variables.global_variables_initializer().run()
       params_values = [params[p_i.name] for p_i in p]
       # Test that the PartitionedVariable components equal the list in p
-      p_var_val = sess.run(list(p_variable))
+      p_var_val = self.evaluate(list(p_variable))
       # Actual test
       print(ops.get_default_graph().as_graph_def())
-      tf_result = embedding.eval()
+      tf_result = self.evaluate(embedding)
     np_result, _, _ = _EmbeddingResult(params, id_vals, num_shards, vocab_size)
     self.assertAllEqual(params_values, p_var_val)
     self.assertAllEqual(np_result, tf_result)
@@ -758,11 +758,13 @@ class SafeEmbeddingLookupSparseTest(test.TestCase):
     assert num_shards > 0
     assert num_shards <= vocab_size
 
-    embedding_weights = partitioned_variables.create_partitioned_variables(
+    initializer = init_ops.truncated_normal_initializer(
+        mean=0.0, stddev=1.0 / math.sqrt(vocab_size), dtype=dtypes.float32)
+    embedding_weights = list(variable_scope.get_variable(
+        name="embedding_weights",
         shape=[vocab_size, embed_dim],
-        slicing=[num_shards, 1],
-        initializer=init_ops.truncated_normal_initializer(
-            mean=0.0, stddev=1.0 / math.sqrt(vocab_size), dtype=dtypes.float32))
+        partitioner=partitioned_variables.fixed_size_partitioner(num_shards),
+        initializer=initializer))
     for w in embedding_weights:
       w.initializer.run()
     embedding_weights = [w.eval() for w in embedding_weights]

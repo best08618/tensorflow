@@ -95,7 +95,8 @@ load("//tensorflow:tensorflow.bzl", "tf_cc_test_gpu")
 load("//tensorflow:tensorflow.bzl", "tf_cc_tests_gpu")
 load("//tensorflow:tensorflow.bzl", "tf_cuda_cc_test")
 load("//tensorflow:tensorflow.bzl", "tf_version_info_genrule")
-load("//tensorflow:tensorflow.bzl", "if_not_tx2_llvm_or_windows_cuda")
+load("//tensorflow:tensorflow.bzl", "if_nccl")
+load("//tensorflow:tensorflow.bzl", "tensorflow_opensource_extra_deps")
 load("//tensorflow:tensorflow.bzl", "tf_cuda_only_cc_test")
 
 # For platform specific build config
@@ -112,6 +113,7 @@ load(
     "tf_additional_device_tracer_test_flags",
     "tf_additional_gdr_lib_defines",
     "tf_additional_human_readable_json_deps",
+    "tf_additional_logger_deps",
     "tf_additional_lib_defines",
     "tf_additional_lib_deps",
     "tf_additional_lib_hdrs",
@@ -300,6 +302,7 @@ filegroup(
         "platform/env_time.h",
         "platform/logging.h",
         "platform/macros.h",
+        "platform/platform_strings.h",
         "platform/types.h",
     ],
     visibility = ["//visibility:private"],
@@ -442,6 +445,18 @@ cc_library(
     ] + tf_additional_human_readable_json_deps(),
 )
 
+cc_library(
+    name = "logger",
+    srcs = tf_platform_srcs(["logger.cc"]),
+    hdrs = ["platform/logger.h"] + tf_platform_hdrs(["logger.h"]),
+    copts = tf_copts(),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":lib",
+        ":lib_internal",
+    ] + tf_additional_logger_deps(),
+)
+
 filegroup(
     name = "platform_env_hdrs",
     srcs = [
@@ -517,6 +532,19 @@ cc_library(
         ":lib_platform",
         ":platform_env",
     ],
+)
+
+cc_library(
+    name = "platform_strings",
+    srcs = tf_platform_srcs([
+        "platform/platform_strings.cc",
+        "platform/platform_strings_computed.h",
+    ]),
+    hdrs = [
+        "platform/platform_strings.h",
+    ],
+    visibility = ["//tensorflow/core:__subpackages__"],
+    deps = [":lib"],
 )
 
 filegroup(
@@ -884,6 +912,7 @@ tf_cuda_library(
         "util/bcast.h",
         "util/cuda_kernel_helper.h",
         "util/device_name_utils.h",
+        "util/dump_graph.h",
         "util/events_writer.h",
         "util/example_proto_fast_parsing.h",
         "util/example_proto_helper.h",
@@ -901,6 +930,7 @@ tf_cuda_library(
         "util/stream_executor_util.h",
         "util/strided_slice_op.h",
         "util/tensor_format.h",
+        "util/tensor_ops_util.h",
         "util/tensor_slice_reader.h",
         "util/tensor_slice_reader_cache.h",
         "util/tensor_slice_writer.h",
@@ -1038,6 +1068,7 @@ tf_gen_op_libs(
         "batch_ops",
         "bitwise_ops",
         "boosted_trees_ops",
+        "tensor_forest_ops",
         "candidate_sampling_ops",
         "checkpoint_ops",
         "collective_ops",
@@ -1187,6 +1218,7 @@ cc_library(
         ":batch_ops_op_lib",
         ":bitwise_ops_op_lib",
         ":boosted_trees_ops_op_lib",
+        ":tensor_forest_ops_op_lib",
         ":candidate_sampling_ops_op_lib",
         ":checkpoint_ops_op_lib",
         ":collective_ops_op_lib",
@@ -1340,6 +1372,7 @@ cc_library(
         "//tensorflow/core/kernels:batch_kernels",
         "//tensorflow/core/kernels:bincount_op",
         "//tensorflow/core/kernels:boosted_trees_ops",
+        "//tensorflow/core/kernels:tensor_forest_ops",
         "//tensorflow/core/kernels:candidate_sampler_ops",
         "//tensorflow/core/kernels:checkpoint_ops",
         "//tensorflow/core/kernels:collective_ops",
@@ -1386,9 +1419,7 @@ cc_library(
         "//tensorflow/core/kernels:summary_kernels",
         "//tensorflow/core/kernels:training_ops",
         "//tensorflow/core/kernels:word2vec_kernels",
-    ] + tf_additional_cloud_kernel_deps() + if_not_tx2_llvm_or_windows_cuda([
-        "//tensorflow/core/kernels:nccl_kernels",
-    ]) + if_not_windows([
+    ] + tf_additional_cloud_kernel_deps() + if_not_windows([
         "//tensorflow/core/kernels:fact_op",
         "//tensorflow/core/kernels:array_not_windows",
         "//tensorflow/core/kernels:math_not_windows",
@@ -1413,6 +1444,8 @@ cc_library(
     ]) + if_cuda([
         "//tensorflow/core/grappler/optimizers:gpu_swapping_kernels",
         "//tensorflow/core/grappler/optimizers:gpu_swapping_ops",
+    ]) + if_nccl([
+        "//tensorflow/core/kernels:nccl_kernels",
     ]),
 )
 
@@ -1437,7 +1470,7 @@ tf_cuda_library(
         ":gpu_runtime",
         ":lib",
         ":ops",
-    ],
+    ] + tensorflow_opensource_extra_deps(),
 )
 
 cc_library(
@@ -1577,6 +1610,8 @@ filegroup(
             "util/stats_calculator.*",
             "util/reporter.*",
             "platform/**/cuda_libdevice_path.*",
+            "platform/**/logger.cc",
+            "platform/**/logger.h",
             "platform/default/test_benchmark.*",
             "platform/cuda.h",
             "platform/google/**/*",
@@ -1671,6 +1706,7 @@ cc_library(
 cc_library(
     name = "mobile_additional_lib_deps",
     deps = tf_additional_lib_deps() + [
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -1775,6 +1811,7 @@ cc_library(
     deps = [
         ":protos_all_cc_impl",
         "//third_party/eigen3",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@double_conversion//:double-conversion",
         "@nsync//:nsync_cpp",
         "@protobuf_archive//:protobuf",
@@ -1799,6 +1836,7 @@ cc_library(
     deps = [
         ":protos_all_cc_impl",
         "//third_party/eigen3",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@double_conversion//:double-conversion",
         "@nsync//:nsync_cpp",
         "@protobuf_archive//:protobuf",
@@ -2186,6 +2224,7 @@ cc_library(
             "platform/**/env_time.cc",
             "platform/**/cuda_libdevice_path.cc",
             "platform/**/device_tracer.cc",
+            "platform/**/logger.cc",
             "platform/**/logging.cc",
             "platform/**/human_readable_json.cc",
             "platform/abi.cc",
@@ -2198,6 +2237,7 @@ cc_library(
             "platform/**/stream_executor.h",
             "platform/**/env_time.cc",
             "platform/**/device_tracer.cc",
+            "platform/**/logger.cc",
             "platform/**/logging.cc",
             "platform/**/human_readable_json.cc",
             "platform/abi.cc",
@@ -2640,6 +2680,8 @@ tf_cuda_library(
         ":stats_calculator_portable",
         ":version_lib",
         "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/strings",
         "//tensorflow/core/platform/default/build_config:platformlib",
         "//tensorflow/core/kernels:bounds_check",
         "//third_party/eigen3",
@@ -2942,6 +2984,7 @@ tf_cuda_library(
         ":lib_internal",
         ":proto_text",
         ":protos_all_cc",
+        "@com_google_absl//absl/memory",
         "//third_party/eigen3",
         "//tensorflow/core/grappler:grappler_item",
     ] + mkl_deps(),
@@ -3002,6 +3045,15 @@ cc_library(
 )
 
 tf_cuda_library(
+    name = "metrics",
+    srcs = ["common_runtime/metrics.cc"],
+    hdrs = ["common_runtime/metrics.h"],
+    deps = [
+        ":lib",
+    ],
+)
+
+tf_cuda_library(
     name = "direct_session_internal",
     srcs = ["common_runtime/direct_session.cc"],
     hdrs = [
@@ -3017,6 +3069,7 @@ tf_cuda_library(
         ":graph",
         ":lib",
         ":lib_internal",
+        ":metrics",
         ":proto_text",
         ":protos_all_cc",
         "//tensorflow/core/debug:debug_graph_utils",
@@ -3380,6 +3433,7 @@ tf_cc_tests(
         "platform/profile_utils/cpu_utils_test.cc",
         "platform/stacktrace_handler_test.cc",
         "platform/subprocess_test.cc",
+        "platform/vmodule_benchmark_test.cc",
     ],
     deps = [
         ":lib",
@@ -3390,6 +3444,20 @@ tf_cc_tests(
         ":test_main",
         "//third_party/eigen3",
         "@zlib_archive//:zlib",
+    ],
+)
+
+tf_cc_test(
+    name = "vmodule_test",
+    srcs = ["platform/vmodule_test.cc"],
+    tags = ["optonly"],
+    deps = [
+        ":lib",
+        ":lib_internal",
+        ":lib_test_internal",
+        ":protos_all_cc",
+        ":test",
+        "//third_party/eigen3",
     ],
 )
 
@@ -3406,12 +3474,6 @@ tf_cc_test(
         ":test_main",
         "//third_party/eigen3",
     ],
-)
-
-cc_library(
-    name = "platform_strings",
-    srcs = ["platform/platform_strings_computed.h"],
-    hdrs = ["platform/platform_strings.h"],
 )
 
 tf_cc_test(
@@ -3671,6 +3733,7 @@ tf_cc_tests(
         "util/bcast_test.cc",
         "util/command_line_flags_test.cc",
         "util/device_name_utils_test.cc",
+        "util/dump_graph_test.cc",
         "util/equal_graph_def_test.cc",
         "util/events_writer_test.cc",
         "util/example_proto_fast_parsing_test.cc",
@@ -3801,6 +3864,7 @@ tf_cc_tests_gpu(
         ":test",
         ":test_main",
         ":testlib",
+        "@com_google_absl//absl/memory",
     ],
 )
 
@@ -3829,6 +3893,7 @@ tf_cc_tests_gpu(
         ":test",
         ":test_main",
         ":testlib",
+        "@com_google_absl//absl/memory",
     ],
 )
 
@@ -4102,6 +4167,7 @@ tf_cc_test(
         "//tensorflow/core/kernels:identity_op",
         "//tensorflow/core/kernels:immutable_constant_op",
         "//tensorflow/core/kernels:matmul_op",
+        "//tensorflow/core/kernels:topk_op",
         "//third_party/eigen3",
     ],
 )
@@ -4395,6 +4461,7 @@ tf_cc_test(
         "//tensorflow/core/kernels:random_ops",
         "//tensorflow/core/kernels:shape_ops",
         "//third_party/eigen3",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -4874,6 +4941,7 @@ transitive_hdrs(
         "//tensorflow/core:core_cpu",
         "//tensorflow/core:framework",
         "//tensorflow/core:lib",
+        "//tensorflow/core:platform_strings",
         "//tensorflow/core:protos_all_cc",
         "//tensorflow/core:stream_executor",
     ],

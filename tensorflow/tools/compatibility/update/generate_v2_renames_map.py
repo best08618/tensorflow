@@ -32,6 +32,7 @@ from tensorflow.python.util import tf_decorator
 from tensorflow.python.util import tf_export
 from tensorflow.tools.common import public_api
 from tensorflow.tools.common import traverse
+from tensorflow.tools.compatibility import tf_upgrade_v2
 
 
 _OUTPUT_FILE_PATH = 'third_party/tensorflow/tools/compatibility/renames_v2.py'
@@ -78,11 +79,31 @@ def get_canonical_name(v2_names, v1_name):
   return 'compat.v1.%s' % v1_name
 
 
+def get_all_v2_names():
+  """Get a set of function/class names available in TensorFlow 2.0."""
+  v2_names = set()  # All op names in TensorFlow 2.0
+
+  def visit(unused_path, unused_parent, children):
+    """Visitor that collects TF 2.0 names."""
+    for child in children:
+      _, attr = tf_decorator.unwrap(child[1])
+      if not hasattr(attr, '__dict__'):
+        continue
+      api_names_v2 = attr.__dict__.get(_TENSORFLOW_API_ATTR, [])
+      for name in api_names_v2:
+        v2_names.add(name)
+
+  visitor = public_api.PublicAPIVisitor(visit)
+  visitor.do_not_descend_map['tf'].append('contrib')
+  traverse.traverse(tf.compat.v2, visitor)
+  return v2_names
+
+
 def collect_constant_renames():
   """Looks for constants that need to be renamed in TF 2.0.
 
   Returns:
-    List of tuples of the form (current name, new name).
+    Set of tuples of the form (current name, new name).
   """
   renames = set()
   for module in sys.modules.values():
@@ -115,12 +136,11 @@ def collect_function_renames():
   """Looks for functions/classes that need to be renamed in TF 2.0.
 
   Returns:
-    List of tuples of the form (current name, new name).
+    Set of tuples of the form (current name, new name).
   """
   # Set of rename lines to write to output file in the form:
   #   'tf.deprecated_name': 'tf.canonical_name'
   renames = set()
-  v2_names = set()  # All op names in TensorFlow 2.0
 
   def visit(unused_path, unused_parent, children):
     """Visitor that collects rename strings to add to rename_line_set."""
@@ -133,8 +153,6 @@ def collect_function_renames():
       deprecated_api_names = set(api_names_v1) - set(api_names_v2)
       for name in deprecated_api_names:
         renames.add((name, get_canonical_name(api_names_v2, name)))
-      for name in api_names_v2:
-        v2_names.add(name)
 
   visitor = public_api.PublicAPIVisitor(visit)
   visitor.do_not_descend_map['tf'].append('contrib')
@@ -144,8 +162,9 @@ def collect_function_renames():
   # It is possible that a different function is exported with the
   # same name. For e.g. when creating a different function to
   # rename arguments. Exclude it from renames in this case.
-  renames = {name: new_name for name, new_name in renames.items()
-             if name not in v2_names}
+  v2_names = get_all_v2_names()
+  renames = set((name, new_name) for name, new_name in renames
+                if name not in v2_names)
   return renames
 
 
@@ -163,12 +182,15 @@ def update_renames_v2(output_file_path):
   function_renames = collect_function_renames()
   constant_renames = collect_constant_renames()
   all_renames = function_renames.union(constant_renames)
+  manual_renames = set(
+      tf_upgrade_v2.TFAPIChangeSpec().manual_symbol_renames.keys())
 
   # List of rename lines to write to output file in the form:
   #   'tf.deprecated_name': 'tf.canonical_name'
   rename_lines = [
       get_rename_line(name, canonical_name)
-      for name, canonical_name in all_renames]
+      for name, canonical_name in all_renames
+      if 'tf.' + name not in manual_renames]
   renames_file_text = '%srenames = {\n%s\n}\n' % (
       _FILE_HEADER, ',\n'.join(sorted(rename_lines)))
   file_io.write_string_to_file(output_file_path, renames_file_text)

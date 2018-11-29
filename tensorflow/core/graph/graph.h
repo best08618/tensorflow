@@ -59,13 +59,13 @@ class EdgeSetTest;
 class Graph;
 class GraphDef;
 class Node;
-class OutputTensor;
+struct OutputTensor;
 class VersionDef;
 class WhileContext;
 
 class NeighborIter;    // Declared below
 class NodeIter;        // Declared below
-class NodeProperties;  // Defined in .cc
+struct NodeProperties;  // Defined in .cc
 
 class Node {
  public:

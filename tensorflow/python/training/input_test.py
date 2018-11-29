@@ -58,9 +58,12 @@ class MatchFilenamesOnceTest(test_lib.TestCase):
       one = inp.match_filenames_once(additional[1])
       variables.global_variables_initializer().run()
       variables.local_variables_initializer().run()
-      self.assertItemsEqual(map(compat.as_bytes, filenames), star.eval())
-      self.assertItemsEqual(map(compat.as_bytes, additional), question.eval())
-      self.assertItemsEqual([compat.as_bytes(additional[1])], one.eval())
+      self.assertItemsEqual(
+          map(compat.as_bytes, filenames), self.evaluate(star))
+      self.assertItemsEqual(
+          map(compat.as_bytes, additional), self.evaluate(question))
+      self.assertItemsEqual([compat.as_bytes(additional[1])],
+                            self.evaluate(one))
 
 
 class LimitEpochsTest(test_lib.TestCase):
@@ -71,7 +74,7 @@ class LimitEpochsTest(test_lib.TestCase):
       seven_forever = inp.limit_epochs(seven)
       variables.local_variables_initializer().run()
       for _ in range(100):
-        self.assertEqual(7, seven_forever.eval())
+        self.assertEqual(7, self.evaluate(seven_forever))
 
   def testLimit(self):
     with self.cached_session():
@@ -79,10 +82,10 @@ class LimitEpochsTest(test_lib.TestCase):
       love_me_two_times = inp.limit_epochs(love_me, num_epochs=2)
       variables.global_variables_initializer().run()
       variables.local_variables_initializer().run()
-      self.assertEqual(b"Love Me", love_me_two_times.eval())
-      self.assertEqual(b"Love Me", love_me_two_times.eval())
+      self.assertEqual(b"Love Me", self.evaluate(love_me_two_times))
+      self.assertEqual(b"Love Me", self.evaluate(love_me_two_times))
       with self.assertRaises(errors_impl.OutOfRangeError):
-        love_me_two_times.eval()
+        self.evaluate(love_me_two_times)
 
 
 class InputProducerTest(test_lib.TestCase):
@@ -102,11 +105,12 @@ class InputProducerTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
-      self.assertAllEqual(input_tensor * num_epochs, dequeue_many.eval())
+      self.assertAllEqual(input_tensor * num_epochs,
+                          self.evaluate(dequeue_many))
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        dequeue.eval()
+        self.evaluate(dequeue)
       for thread in threads:
         thread.join()
 
@@ -127,11 +131,11 @@ class InputProducerTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
-      self.assertAllEqual(input_value * num_epochs, dequeue_many.eval())
+      self.assertAllEqual(input_value * num_epochs, self.evaluate(dequeue_many))
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        dequeue.eval()
+        self.evaluate(dequeue)
       for thread in threads:
         thread.join()
 
@@ -156,12 +160,12 @@ class StringInputProducerTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
-      output = dequeue_many.eval()
+      output = self.evaluate(dequeue_many)
       self.assertAllEqual(strings * num_epochs, output)
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        dequeue.eval()
+        self.evaluate(dequeue)
       for thread in threads:
         thread.join()
 
@@ -184,7 +188,7 @@ class StringInputProducerTest(test_lib.TestCase):
       for e in expected:
         frequency[e] = 0
       for _ in range(num_epochs):
-        output = dequeue_many.eval()
+        output = self.evaluate(dequeue_many)
         key = b"".join(output)
         self.assertIn(key, expected)
         frequency[key] += 1
@@ -200,7 +204,7 @@ class StringInputProducerTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        dequeue.eval()
+        self.evaluate(dequeue)
       for thread in threads:
         thread.join()
 
@@ -224,7 +228,7 @@ class StringInputProducerTest(test_lib.TestCase):
       variables.local_variables_initializer().run()
       threads = queue_runner_impl.start_queue_runners(coord=coord)
       with self.assertRaises(errors_impl.OutOfRangeError):
-        dequeue.eval()
+        self.evaluate(dequeue)
       coord.request_stop()
       for thread in threads:
         thread.join()
@@ -252,7 +256,7 @@ class StringInputProducerTest(test_lib.TestCase):
           # writing of the `tf.Graph` object. However, many users
           # write code this way, so we include this test to ensure
           # that we can support it.
-          self.assertEquals(string, sess.run(queue.dequeue()))
+          self.assertEquals(string, self.evaluate(queue.dequeue()))
       coord.request_stop()
       coord.join(threads)
 
@@ -272,12 +276,12 @@ class RangeInputProducerTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
-      output = dequeue_many.eval()
+      output = self.evaluate(dequeue_many)
       self.assertAllEqual(list(xrange(range_size)) * num_epochs, output)
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        dequeue.eval()
+        self.evaluate(dequeue)
       for thread in threads:
         thread.join()
 
@@ -300,7 +304,7 @@ class RangeInputProducerTest(test_lib.TestCase):
       for e in expected:
         frequency[e] = 0
       for _ in range(num_epochs):
-        output = dequeue_many.eval()
+        output = self.evaluate(dequeue_many)
         key = 10 * (output[0] + 1) + (output[1] + 1)
         self.assertIn(key, expected)
         frequency[key] += 1
@@ -316,7 +320,7 @@ class RangeInputProducerTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        dequeue.eval()
+        self.evaluate(dequeue)
       for thread in threads:
         thread.join()
 
@@ -344,14 +348,14 @@ class SliceInputProducerTest(test_lib.TestCase):
 
       # No randomness, so just see repeated copies of the input.
       num_items = len(source_strings) * num_epochs
-      output = [sess.run(slices) for _ in range(num_items)]
+      output = [self.evaluate(slices) for _ in range(num_items)]
       out_strings, out_ints = zip(*output)
       self.assertAllEqual(source_strings * num_epochs, out_strings)
       self.assertAllEqual(source_ints * num_epochs, out_ints)
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(slices)
+        self.evaluate(slices)
       for thread in threads:
         thread.join()
 
@@ -379,7 +383,7 @@ class SliceInputProducerTest(test_lib.TestCase):
       for e in expected:
         frequency[e] = 0
       for _ in range(num_epochs):
-        output = [sess.run(slices) for _ in range(len(source_strings))]
+        output = [self.evaluate(slices) for _ in range(len(source_strings))]
         key = b",".join([s + compat.as_bytes(str(i)) for s, i in output])
         self.assertIn(key, expected)
         frequency[key] += 1
@@ -395,7 +399,7 @@ class SliceInputProducerTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(slices)
+        self.evaluate(slices)
       for thread in threads:
         thread.join()
 
@@ -470,7 +474,7 @@ class BatchTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for i in range(num_batches):
-        results = sess.run(batched_fetch)
+        results = self.evaluate(batched_fetch)
         self.assertAllEqual(results[0],
                             np.arange(i * batch_size, (i + 1) * batch_size))
         self.assertAllEqual(
@@ -487,7 +491,7 @@ class BatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched_fetch)
+        self.evaluate(batched_fetch)
       for thread in threads:
         thread.join()
 
@@ -503,7 +507,7 @@ class BatchTest(test_lib.TestCase):
     with self.cached_session() as sess:
       coord = coordinator.Coordinator()
       threads = queue_runner_impl.start_queue_runners(sess=sess, coord=coord)
-      sess.run(batched)
+      self.evaluate(batched)
       coord.request_stop()
       for thread in threads:
         thread.join()
@@ -514,7 +518,7 @@ class BatchTest(test_lib.TestCase):
     with self.cached_session() as sess:
       coord = coordinator.Coordinator()
       threads = queue_runner_impl.start_queue_runners(sess=sess, coord=coord)
-      sess.run(batched)
+      self.evaluate(batched)
       coord.request_stop()
       for thread in threads:
         thread.join()
@@ -535,7 +539,7 @@ class BatchTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         expected_results = np.arange(i * batch_size, (i + 1) * batch_size)
         max_len = expected_results[-1]
         self.assertAllEqual(results[0], expected_results)
@@ -545,7 +549,7 @@ class BatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -567,7 +571,7 @@ class BatchTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         self.assertAllEqual(results[0],
                             np.arange(i * batch_size, (i + 1) * batch_size))
         self.assertAllEqual(
@@ -580,7 +584,7 @@ class BatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -606,7 +610,7 @@ class BatchTest(test_lib.TestCase):
 
       all_counts = []
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         tf_logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         self.assertAllEqual(results[0], results[1].values)
@@ -620,7 +624,7 @@ class BatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -647,7 +651,7 @@ class BatchTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         self.assertAllEqual(results[0],
                             np.arange(i * batch_size, (i + 1) * batch_size))
         self.assertAllEqual(
@@ -663,7 +667,7 @@ class BatchTest(test_lib.TestCase):
         self.assertAllEqual(results[2], [b"string"] * batch_size)
 
       # Reached the final batch with extra_elements.
-      results = sess.run(batched)
+      results = self.evaluate(batched)
       self.assertAllEqual(results[0],
                           np.arange(num_batches * batch_size,
                                     num_batches * batch_size + extra_elements))
@@ -677,7 +681,7 @@ class BatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -705,7 +709,7 @@ class BatchTest(test_lib.TestCase):
 
       all_counts = []
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         tf_logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         self.assertAllEqual(results[0], results[1].values)
@@ -717,7 +721,7 @@ class BatchTest(test_lib.TestCase):
         self.assertAllEqual(results[2], [b"string"] * batch_size)
 
       # Reached the final batch with extra_elements.
-      results = sess.run(batched)
+      results = self.evaluate(batched)
       tf_logging.info("Last Batch: %s", results[0])
       self.assertEqual(len(results[0]), extra_elements)
       self.assertAllEqual(results[0], results[1].values)
@@ -732,7 +736,7 @@ class BatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -823,14 +827,14 @@ class BatchTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for _ in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         self.assertAllEqual([0] * batch_size, np.mod(results[0], 2))
         self.assertAllEqual([0] * batch_size, np.mod(results[1].values, 2))
         self.assertAllEqual([b"string"] * batch_size, results[2])
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -938,7 +942,7 @@ class BatchTest(test_lib.TestCase):
       coord = coordinator.Coordinator()
       threads = queue_runner_impl.start_queue_runners(coord=coord)
 
-      batched_np = batched.eval()
+      batched_np = self.evaluate(batched)
 
       coord.request_stop()
       for thread in threads:
@@ -1016,7 +1020,7 @@ class BatchJoinTest(test_lib.TestCase):
       saw_both = 0
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
-        results = sess.run(batched_fetch)
+        results = self.evaluate(batched_fetch)
         self.assertEqual(3, len(results))
         self.assertEqual(batch_size, len(results[0]))
         self.assertEqual(batch_size, len(results[2]))
@@ -1047,7 +1051,7 @@ class BatchJoinTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched_fetch)
+        self.evaluate(batched_fetch)
       for thread in threads:
         thread.join()
 
@@ -1112,7 +1116,7 @@ class BatchJoinTest(test_lib.TestCase):
       saw_both = 0
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         self.assertEqual(2, len(results))
         self.assertEqual(len(results[0]), batch_size)
         self.assertEqual(len(results[1]), batch_size)
@@ -1144,7 +1148,7 @@ class BatchJoinTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -1197,7 +1201,7 @@ class BatchJoinTest(test_lib.TestCase):
       saw_both = 0
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         tf_logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         self.assertEqual(len(results[2]), batch_size)
@@ -1217,7 +1221,7 @@ class BatchJoinTest(test_lib.TestCase):
                             [results[0][i] for i in which_b])
 
       # Reached the final batch with 2 * extra_elements.
-      results = sess.run(batched)
+      results = self.evaluate(batched)
       tf_logging.info("Last Batch: %s", results[0])
       self.assertEqual(len(results[0]), 2 * extra_elements)
       self.assertEqual(len(results[2]), 2 * extra_elements)
@@ -1245,7 +1249,7 @@ class BatchJoinTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -1292,7 +1296,7 @@ class BatchJoinTest(test_lib.TestCase):
       saw_both = 0
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         tf_logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         self.assertEqual(len(results[1]), batch_size)
@@ -1312,7 +1316,7 @@ class BatchJoinTest(test_lib.TestCase):
                             [results[0][i] for i in which_b])
 
       # Reached the final batch with 2 * extra_elements.
-      results = sess.run(batched)
+      results = self.evaluate(batched)
       tf_logging.info("Last Batch: %s", results[0])
       self.assertEqual(len(results[0]), 2 * extra_elements)
       self.assertEqual(len(results[1]), 2 * extra_elements)
@@ -1343,7 +1347,7 @@ class BatchJoinTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -1406,7 +1410,7 @@ class BatchJoinTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for _ in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         self.assertAllEqual(
             [0] * batch_size,
             np.mod(results[0], 2),)
@@ -1417,7 +1421,7 @@ class BatchJoinTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -1525,7 +1529,7 @@ class BatchJoinTest(test_lib.TestCase):
       coord = coordinator.Coordinator()
       threads = queue_runner_impl.start_queue_runners(coord=coord)
 
-      batched_np = batched.eval()
+      batched_np = self.evaluate(batched)
 
       coord.request_stop()
       for thread in threads:
@@ -1575,7 +1579,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       all_counts = []
       for i in range(num_batches):
-        results = sess.run(batched_fetch)
+        results = self.evaluate(batched_fetch)
         self.assertEqual(len(results[0]), batch_size)
         all_counts.extend(results[0])
         self.assertAllEqual(
@@ -1593,7 +1597,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched_fetch)
+        self.evaluate(batched_fetch)
       for thread in threads:
         thread.join()
 
@@ -1630,7 +1634,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       all_counts = []
       for _ in range(num_batches):
-        results = sess.run(batched_fetch)
+        results = self.evaluate(batched_fetch)
         self.assertEqual(len(results[0]), batch_size)
         all_counts.extend(results[0])
         self.assertAllEqual(
@@ -1641,7 +1645,7 @@ class ShuffleBatchTest(test_lib.TestCase):
         self.assertAllEqual(results[2], [b"string"] * batch_size)
 
       # Reached the final batch with extra elements.
-      results = sess.run(batched)
+      results = self.evaluate(batched)
       self.assertAllEqual(results[1].dense_shape, [extra_elements, 1])
       self.assertAllEqual(results[2], [b"string"] * extra_elements)
       all_counts.extend(results[0])
@@ -1655,7 +1659,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched_fetch)
+        self.evaluate(batched_fetch)
       for thread in threads:
         thread.join()
 
@@ -1683,7 +1687,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       all_counts = []
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         tf_logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         all_counts.extend(results[0])
@@ -1702,7 +1706,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -1733,7 +1737,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       all_counts = []
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         tf_logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         all_counts.extend(results[0])
@@ -1745,7 +1749,7 @@ class ShuffleBatchTest(test_lib.TestCase):
         self.assertAllEqual(results[2], [b"string"] * batch_size)
 
       # Reached the final batch with extra elements.
-      results = sess.run(batched)
+      results = self.evaluate(batched)
       self.assertAllEqual(results[0].shape, [extra_elements])
       self.assertAllEqual(results[1].dense_shape, [extra_elements, 1])
       self.assertAllEqual(results[2], [b"string"] * extra_elements)
@@ -1760,7 +1764,7 @@ class ShuffleBatchTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -1813,14 +1817,14 @@ class ShuffleBatchTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for _ in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         self.assertAllEqual([0] * batch_size, np.mod(results[0], 2))
         self.assertAllEqual([0] * batch_size, np.mod(results[1].values, 2))
         self.assertAllEqual([b"string"] * batch_size, results[2])
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -1986,7 +1990,7 @@ class ShuffleBatchJoinTest(test_lib.TestCase):
       saw_both = 0
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
-        results = sess.run(batched_fetch)
+        results = self.evaluate(batched_fetch)
         self.assertEqual(3, len(results))
         self.assertEqual(len(results[0]), batch_size)
         self.assertEqual(len(results[2]), batch_size)
@@ -2016,7 +2020,7 @@ class ShuffleBatchJoinTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched_fetch)
+        self.evaluate(batched_fetch)
       for thread in threads:
         thread.join()
 
@@ -2078,7 +2082,7 @@ class ShuffleBatchJoinTest(test_lib.TestCase):
       saw_both = 0
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         tf_logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         self.assertEqual(len(results[2]), batch_size)
@@ -2098,7 +2102,7 @@ class ShuffleBatchJoinTest(test_lib.TestCase):
                             [results[0][i] for i in which_b])
 
       # Reached end with 2 * extra_elements left
-      results = sess.run(batched)
+      results = self.evaluate(batched)
       self.assertEqual(len(results[0]), 2 * extra_elements)
       self.assertAllEqual(results[1].dense_shape, [2 * extra_elements, 1])
       self.assertEqual(len(results[2]), 2 * extra_elements)
@@ -2125,7 +2129,7 @@ class ShuffleBatchJoinTest(test_lib.TestCase):
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 
@@ -2199,14 +2203,14 @@ class ShuffleBatchJoinTest(test_lib.TestCase):
       threads = queue_runner_impl.start_queue_runners()
 
       for _ in range(num_batches):
-        results = sess.run(batched)
+        results = self.evaluate(batched)
         self.assertAllEqual([0] * batch_size, np.mod(results[0], 2))
         self.assertAllEqual([0] * batch_size, np.mod(results[1].values, 2))
         self.assertAllEqual([b"string"] * batch_size, results[2])
 
       # Reached the limit.
       with self.assertRaises(errors_impl.OutOfRangeError):
-        sess.run(batched)
+        self.evaluate(batched)
       for thread in threads:
         thread.join()
 

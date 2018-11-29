@@ -2309,7 +2309,9 @@ class SimplifyAggregation : public ArithmeticOptimizerStage {
   ~SimplifyAggregation() override = default;
 
   bool IsSupported(const NodeDef* node) const override {
-    return IsAggregate(*node) && NumNonControlInputs(*node) > 0;
+    return IsAggregate(*node) && NumNonControlInputs(*node) > 0 &&
+           GetDataTypeFromAttr(*node, "T") !=
+               DT_VARIANT;  // TODO(b/119787146): Enable for variants.
   }
 
   Status TrySimplify(NodeDef* node, string* simplified_node_name) override {
@@ -2407,7 +2409,7 @@ class ConvertPowStage : public ArithmeticOptimizerStage {
         ctx().graph_properties->GetInputProperties(node->name())[1];
     for (int i = 0; i < pow_props.shape().dim_size(); ++i) {
       if (pow_props.shape().dim(i).size() < 0) {
-        // skip if p is is not fully defined.
+        // skip if p is not fully defined.
         return Status::OK();
       }
     }
@@ -2459,7 +2461,7 @@ class ConvertPowStage : public ArithmeticOptimizerStage {
                  ShapesSymbolicallyEqual(value_props.shape(), output_shape)) {
         for (int i = 0; i < value_props.shape().dim_size(); ++i) {
           if (value_props.shape().dim(i).size() < 0) {
-            // skip if b is is not fully defined.
+            // skip if b is not fully defined.
             return Status::OK();
           }
         }

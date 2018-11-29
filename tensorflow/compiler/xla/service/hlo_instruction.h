@@ -770,6 +770,9 @@ class HloInstruction {
   static std::unique_ptr<HloInstruction> CreateGetDimensionSize(
       const Shape& shape, HloInstruction* operand, int64 dimension);
 
+  static std::unique_ptr<HloInstruction> CreateAddDependency(
+      HloInstruction* data_operand, HloInstruction* token_operand);
+
   // Returns the opcode for this instruction.
   HloOpcode opcode() const { return opcode_; }
 
@@ -1263,6 +1266,7 @@ class HloInstruction {
   // superior.
   // Precondition: opcode must be kConvolution or kDot.
   const PrecisionConfig& precision_config() const;
+  PrecisionConfig* mutable_precision_config();
 
   // Sets the debug metadata for this instruction.
   void set_metadata(const OpMetadata& metadata) { metadata_ = metadata; }
@@ -1322,6 +1326,9 @@ class HloInstruction {
 
   // Delegates to HloConcatenateInstruction::concatenate_dimension.
   int64 concatenate_dimension() const;
+
+  // Delegates to HloGetDimensionSizeInstruction::dimension.
+  int64 dimension() const;
 
   // Returns whether this instruction does a rank-2 transposition.
   bool IsRank2Transpose() const;

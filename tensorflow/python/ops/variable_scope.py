@@ -646,10 +646,6 @@ class _VariableStore(object):
         when violating reuse during variable creation, or if an existing
         sharded variable exists for the given name but with different sharding.
     """
-    if context.executing_eagerly():
-      raise NotImplementedError("Partitioned variables are not yet supported "
-                                "when eager execution is enabled.")
-
     initializing_from_value = initializer is not None and isinstance(
         initializer, ops.Tensor)
     reuse_without_partition = reuse and not partitioner
@@ -684,7 +680,7 @@ class _VariableStore(object):
             "Partitioner returned a partition list that does not match the "
             "Variable's rank: %s vs. %s" % (partitions, shape))
 
-      if any([p < 1 for p in partitions]):
+      if any(p < 1 for p in partitions):
         raise ValueError(
             "Partitioner returned zero partitions for some axes: %s" %
             partitions)
@@ -803,15 +799,13 @@ class _VariableStore(object):
       vs.append(var)
       # pylint: enable=protected-access
 
-      # pylint: disable=protected-access
     partitioned_var = variables.PartitionedVariable(name=name,
                                                     shape=shape,
                                                     dtype=dtype,
                                                     variable_list=vs,
                                                     partitions=partitions)
-    # pylint: enable=protected-access
-
-    self._partitioned_vars[name] = partitioned_var
+    if not context.executing_eagerly() or self._store_eager_variables:
+      self._partitioned_vars[name] = partitioned_var
     return partitioned_var
 
   def _get_single_variable(self,
@@ -913,20 +907,22 @@ class _VariableStore(object):
         variable_dtype = None
       else:
         # Instantiate initializer if provided initializer is a type object.
-        if isinstance(initializer, type(init_ops.Initializer)):
+        if tf_inspect.isclass(initializer):
           initializer = initializer(dtype=dtype)
-        if shape and shape.is_fully_defined():
+        if shape is not None and shape.is_fully_defined():
           init_val = lambda: initializer(  # pylint: disable=g-long-lambda
               shape.as_list(), dtype=dtype, partition_info=partition_info)
-        elif not tf_inspect.getargspec(initializer).args:
+          variable_dtype = dtype.base_dtype
+        elif len(tf_inspect.getargspec(initializer).args) == len(
+            tf_inspect.getargspec(initializer).defaults or []):
           init_val = initializer
+          variable_dtype = None
         else:
-          raise ValueError("You can only pass an initializer function that "
-                           "expects no arguments to its callable when the "
-                           "shape is not fully defined. The given initializer "
-                           "function expects the following args %s" %
-                           tf_inspect.getargspec(initializer).args)
-        variable_dtype = dtype.base_dtype
+          raise ValueError("The initializer passed is not valid. It should "
+                           "be a callable with no arguments and the "
+                           "shape should not be provided or an instance of "
+                           "`tf.keras.initializers.*' and `shape` should be "
+                           "fully defined.")
 
     # Create the variable.
     if use_resource is None:
@@ -1080,9 +1076,6 @@ class VariableScope(object):
       if self._caching_device is not None:
         raise NotImplementedError("Caching devices is not yet supported "
                                   "when eager execution is enabled.")
-      if self._partitioner is not None:
-        raise NotImplementedError("Partitioned variables are not yet supported "
-                                  "when eager execution is enabled.")
       self._reuse = AUTO_REUSE
       self._use_resource = True
 
@@ -1162,9 +1155,6 @@ class VariableScope(object):
 
   def set_partitioner(self, partitioner):
     """Set partitioner for this scope."""
-    if partitioner and context.executing_eagerly():
-      raise NotImplementedError("Partitioned variables are not yet supported "
-                                "when eager execution is enabled.")
     self._partitioner = partitioner
 
   def set_custom_getter(self, custom_getter):
@@ -1277,9 +1267,6 @@ class VariableScope(object):
                                 synchronization=VariableSynchronization.AUTO,
                                 aggregation=VariableAggregation.NONE):
     """Gets an existing variable with this name or create a new one."""
-    if context.executing_eagerly():
-      raise NotImplementedError("Partitioned variables are not yet supported "
-                                "when eager execution is enabled.")
     if initializer is None:
       initializer = self._initializer
     if regularizer is None:
@@ -2246,8 +2233,8 @@ class variable_scope(object):
 
     try:
       return self._enter_scope_uncached()
-    except:
-      if not self._building_function:
+    except Exception:
+      if self._in_graph_mode and not self._building_function:
         if self._graph_context_manager is not None:
           self._graph_context_manager.__exit__(*sys.exc_info())
       raise

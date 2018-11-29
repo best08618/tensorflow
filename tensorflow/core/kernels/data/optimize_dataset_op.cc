@@ -29,6 +29,7 @@ limitations under the License.
 #include "tensorflow/core/grappler/grappler_item_builder.h"
 #include "tensorflow/core/grappler/optimizers/data/graph_utils.h"
 #include "tensorflow/core/grappler/optimizers/meta_optimizer.h"
+#include "tensorflow/core/lib/core/refcount.h"
 #include "tensorflow/core/lib/random/random.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"
@@ -56,8 +57,13 @@ class OptimizeDatasetOp : public UnaryDatasetOpKernel {
         ctx, ParseVectorArgument<string>(ctx, "optimizations", &optimizations));
     Dataset* dataset =
         new Dataset(ctx, input, optimizations, output_types_, output_shapes_);
-    OP_REQUIRES_OK(ctx, dataset->Optimize(ctx));
-    *output = dataset;
+    Status s = dataset->Optimize(ctx);
+    if (s.ok()) {
+      *output = dataset;
+    } else {
+      dataset->Unref();
+      OP_REQUIRES_OK(ctx, s);
+    }
   }
 
  private:
@@ -68,6 +74,7 @@ class OptimizeDatasetOp : public UnaryDatasetOpKernel {
             const DataTypeVector& output_types,
             const std::vector<PartialTensorShape>& output_shapes)
         : DatasetBase(DatasetContext(ctx)),
+          optimized_input_(nullptr),
           input_(input),
           optimizations_(optimizations),
           output_types_(output_types),
@@ -77,7 +84,9 @@ class OptimizeDatasetOp : public UnaryDatasetOpKernel {
 
     ~Dataset() override {
       input_->Unref();
-      optimized_input_->Unref();
+      if (optimized_input_) {
+        optimized_input_->Unref();
+      }
     }
 
     std::unique_ptr<IteratorBase> MakeIteratorInternal(
@@ -226,7 +235,9 @@ class OptimizeDatasetOp : public UnaryDatasetOpKernel {
       (*meta_graph_def.mutable_collection_def())["train_op"] = collection_def;
 
       // Create Grappler item.
-      tensorflow::RewriterConfig rewriter_config;
+      tensorflow::ConfigProto config;
+      RewriterConfig& rewriter_config =
+          *config.mutable_graph_options()->mutable_rewrite_options();
       for (const string& optimization : optimizations_) {
         rewriter_config.add_optimizers(optimization);
       }
@@ -264,7 +275,7 @@ class OptimizeDatasetOp : public UnaryDatasetOpKernel {
         }
       }
       TF_RETURN_IF_ERROR(tensorflow::grappler::RunMetaOptimizer(
-          *grappler_item, rewriter_config, ctx->device(), &cluster, graph_def));
+          *grappler_item, config, ctx->device(), &cluster, graph_def));
 
       return Status::OK();
     }

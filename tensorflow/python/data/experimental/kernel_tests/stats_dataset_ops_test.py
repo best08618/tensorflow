@@ -45,22 +45,18 @@ def function_set_stats_aggregator(dataset,
 
 def function_apply_options(dataset, aggregator, prefix="", counter_prefix=""):
   options = dataset_ops.Options()
-  options.experimental_stats = stats_options.StatsOptions(aggregator)
+  options.experimental_stats = stats_options.StatsOptions()
+  options.experimental_stats.aggregator = aggregator
+  options.experimental_stats.prefix = prefix
+  options.experimental_stats.counter_prefix = counter_prefix
   options.experimental_stats.latency_all_edges = False
-  if prefix:
-    options.experimental_stats.prefix = prefix
-  if counter_prefix:
-    options.experimental_stats.counter_prefix = counter_prefix
   return dataset.with_options(options)
 
 
 @parameterized.named_parameters(
-    dict(
-        testcase_name="SetStatsAggregator",
-        dataset_transformation=function_set_stats_aggregator),
-    dict(
-        testcase_name="StatsOptions",
-        dataset_transformation=function_apply_options))
+    ("SetStatsAggregator", function_set_stats_aggregator),
+    ("StatsOptions", function_apply_options),
+)
 class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
 
   def testBytesProduced(self, dataset_transformation):
@@ -74,18 +70,18 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.cached_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       expected_sum = 0.0
       for i in range(100):
         self.assertAllEqual(
-            np.array([i] * i, dtype=np.int64), sess.run(next_element))
-        summary_str = sess.run(summary_t)
+            np.array([i] * i, dtype=np.int64), self.evaluate(next_element))
+        summary_str = self.evaluate(summary_t)
         self._assertSummaryHasCount(summary_str, "bytes_produced", float(i + 1))
         expected_sum += i * 8.0
         self._assertSummaryHasSum(summary_str, "bytes_produced", expected_sum)
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
-      summary_str = sess.run(summary_t)
+        self.evaluate(next_element)
+      summary_str = self.evaluate(summary_t)
       self._assertSummaryHasCount(summary_str, "bytes_produced", 100.0)
       self._assertSummaryHasSum(summary_str, "bytes_produced", expected_sum)
 
@@ -99,14 +95,15 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.cached_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for i in range(100):
-        self.assertEqual(i, sess.run(next_element))
+        self.assertEqual(i, self.evaluate(next_element))
         self._assertSummaryHasCount(
-            sess.run(summary_t), "record_latency", float(i + 1))
+            self.evaluate(summary_t), "record_latency", float(i + 1))
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
-      self._assertSummaryHasCount(sess.run(summary_t), "record_latency", 100.0)
+        self.evaluate(next_element)
+      self._assertSummaryHasCount(
+          self.evaluate(summary_t), "record_latency", 100.0)
 
   def testPrefetchBufferUtilization(self, dataset_transformation):
     aggregator = stats_aggregator.StatsAggregator()
@@ -118,11 +115,11 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.cached_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for i in range(100):
         self.assertAllEqual(
-            np.array([i] * i, dtype=np.int64), sess.run(next_element))
-        summary_str = sess.run(summary_t)
+            np.array([i] * i, dtype=np.int64), self.evaluate(next_element))
+        summary_str = self.evaluate(summary_t)
         self._assertSummaryHasCount(summary_str, "Prefetch::buffer_utilization",
                                     float(i + 1))
         self._assertSummaryContains(summary_str, "Prefetch::buffer_capacity")
@@ -130,8 +127,8 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
         self._assertSummaryHasRange(summary_str, "Prefetch::buffer_utilization",
                                     0, 1)
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
-      summary_str = sess.run(summary_t)
+        self.evaluate(next_element)
+      summary_str = self.evaluate(summary_t)
       self._assertSummaryHasCount(summary_str, "Prefetch::buffer_utilization",
                                   100)
 
@@ -145,17 +142,17 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.cached_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for i in range(10):
         self.assertAllEqual(
-            np.array([i] * i, dtype=np.int64), sess.run(next_element))
-        summary_str = sess.run(summary_t)
+            np.array([i] * i, dtype=np.int64), self.evaluate(next_element))
+        summary_str = self.evaluate(summary_t)
         self._assertSummaryHasScalarValue(summary_str,
                                           "Prefetch::buffer_capacity", 0)
         self._assertSummaryHasScalarValue(summary_str, "Prefetch::buffer_size",
                                           0)
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
+        self.evaluate(next_element)
 
   def testFilteredElementsStats(self, dataset_transformation):
     aggregator = stats_aggregator.StatsAggregator()
@@ -167,20 +164,21 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.test_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for i in range(34):
-        self.assertEqual(i * 3, sess.run(next_element))
+        self.assertEqual(i * 3, self.evaluate(next_element))
         if i is not 0:
           self._assertSummaryHasScalarValue(
-              sess.run(summary_t), "Filter::dropped_elements", float(i * 2))
+              self.evaluate(summary_t), "Filter::dropped_elements",
+              float(i * 2))
         self._assertSummaryHasScalarValue(
-            sess.run(summary_t), "Filter::filtered_elements", float(i + 1))
+            self.evaluate(summary_t), "Filter::filtered_elements", float(i + 1))
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
+        self.evaluate(next_element)
       self._assertSummaryHasScalarValue(
-          sess.run(summary_t), "Filter::dropped_elements", 67.0)
+          self.evaluate(summary_t), "Filter::dropped_elements", 67.0)
       self._assertSummaryHasScalarValue(
-          sess.run(summary_t), "Filter::filtered_elements", 34.0)
+          self.evaluate(summary_t), "Filter::filtered_elements", 34.0)
 
   def testMapBufferUtilization(self, dataset_transformation):
 
@@ -261,15 +259,16 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
 
     with self.cached_session() as sess:
       for j in range(5):
-        sess.run(iterator.initializer)
+        self.evaluate(iterator.initializer)
         for i in range(100):
-          self.assertEqual(i, sess.run(next_element))
+          self.assertEqual(i, self.evaluate(next_element))
           self._assertSummaryHasCount(
-              sess.run(summary_t), "record_latency", float((j * 100) + i + 1))
+              self.evaluate(summary_t), "record_latency",
+              float((j * 100) + i + 1))
         with self.assertRaises(errors.OutOfRangeError):
-          sess.run(next_element)
+          self.evaluate(next_element)
         self._assertSummaryHasCount(
-            sess.run(summary_t), "record_latency", (j + 1) * 100.0)
+            self.evaluate(summary_t), "record_latency", (j + 1) * 100.0)
 
   def testNoAggregatorRegistered(self, dataset_transformation):
     dataset = dataset_ops.Dataset.range(100).apply(
@@ -278,11 +277,11 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     next_element = iterator.get_next()
 
     with self.cached_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for i in range(100):
-        self.assertEqual(i, sess.run(next_element))
+        self.assertEqual(i, self.evaluate(next_element))
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
+        self.evaluate(next_element)
 
   def testMultipleTags(self, dataset_transformation):
     aggregator = stats_aggregator.StatsAggregator()
@@ -295,18 +294,19 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.cached_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for i in range(100):
-        self.assertEqual(i, sess.run(next_element))
+        self.assertEqual(i, self.evaluate(next_element))
         self._assertSummaryHasCount(
-            sess.run(summary_t), "record_latency", float(i + 1))
+            self.evaluate(summary_t), "record_latency", float(i + 1))
         self._assertSummaryHasCount(
-            sess.run(summary_t), "record_latency_2", float(i + 1))
+            self.evaluate(summary_t), "record_latency_2", float(i + 1))
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
-      self._assertSummaryHasCount(sess.run(summary_t), "record_latency", 100.0)
+        self.evaluate(next_element)
       self._assertSummaryHasCount(
-          sess.run(summary_t), "record_latency_2", 100.0)
+          self.evaluate(summary_t), "record_latency", 100.0)
+      self._assertSummaryHasCount(
+          self.evaluate(summary_t), "record_latency_2", 100.0)
 
   def testRepeatedTags(self, dataset_transformation):
     aggregator = stats_aggregator.StatsAggregator()
@@ -319,14 +319,15 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.cached_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for i in range(100):
-        self.assertEqual(i, sess.run(next_element))
+        self.assertEqual(i, self.evaluate(next_element))
         self._assertSummaryHasCount(
-            sess.run(summary_t), "record_latency", float(2 * (i + 1)))
+            self.evaluate(summary_t), "record_latency", float(2 * (i + 1)))
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
-      self._assertSummaryHasCount(sess.run(summary_t), "record_latency", 200.0)
+        self.evaluate(next_element)
+      self._assertSummaryHasCount(
+          self.evaluate(summary_t), "record_latency", 200.0)
 
   def testMultipleIteratorsSameAggregator(self, dataset_transformation):
     aggregator = stats_aggregator.StatsAggregator()
@@ -339,14 +340,15 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.cached_session() as sess:
-      sess.run([iterator_0.initializer, iterator_1.initializer])
+      self.evaluate([iterator_0.initializer, iterator_1.initializer])
       for i in range(100):
-        self.assertEqual(i * 2, sess.run(next_element))
+        self.assertEqual(i * 2, self.evaluate(next_element))
         self._assertSummaryHasCount(
-            sess.run(summary_t), "record_latency", float(2 * (i + 1)))
+            self.evaluate(summary_t), "record_latency", float(2 * (i + 1)))
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
-      self._assertSummaryHasCount(sess.run(summary_t), "record_latency", 200.0)
+        self.evaluate(next_element)
+      self._assertSummaryHasCount(
+          self.evaluate(summary_t), "record_latency", 200.0)
 
   def testMultipleDatasetWithPrefixes(self, dataset_transformation):
     aggregator = stats_aggregator.StatsAggregator()
@@ -362,19 +364,19 @@ class StatsDatasetTest(stats_dataset_test_base.StatsDatasetTestBase):
     summary_t = aggregator.get_summary()
 
     with self.test_session() as sess:
-      sess.run([iterator_0.initializer, iterator_1.initializer])
+      self.evaluate([iterator_0.initializer, iterator_1.initializer])
       for i in range(100):
-        self.assertEqual(i * 2, sess.run(next_element))
+        self.assertEqual(i * 2, self.evaluate(next_element))
         self._assertSummaryHasCount(
-            sess.run(summary_t), "dataset1_record_latency", float(i + 1))
+            self.evaluate(summary_t), "dataset1_record_latency", float(i + 1))
         self._assertSummaryHasCount(
-            sess.run(summary_t), "dataset2_record_latency", float(i + 1))
+            self.evaluate(summary_t), "dataset2_record_latency", float(i + 1))
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
+        self.evaluate(next_element)
       self._assertSummaryHasCount(
-          sess.run(summary_t), "dataset1_record_latency", 100.0)
+          self.evaluate(summary_t), "dataset1_record_latency", 100.0)
       self._assertSummaryHasCount(
-          sess.run(summary_t), "dataset2_record_latency", 100.0)
+          self.evaluate(summary_t), "dataset2_record_latency", 100.0)
 
 
 @parameterized.named_parameters(
@@ -421,20 +423,21 @@ class FeatureStatsDatasetTest(
     summary_t = aggregator.get_summary()
 
     with self.test_session() as sess:
-      sess.run(iterator.initializer)
+      self.evaluate(iterator.initializer)
       for _ in range(num_output):
-        sess.run(next_element)
+        self.evaluate(next_element)
 
       with self.assertRaises(errors.OutOfRangeError):
-        sess.run(next_element)
+        self.evaluate(next_element)
       self._assertSummaryHasCount(
-          sess.run(summary_t), "record_stats_features", total_records)
+          self.evaluate(summary_t), "record_stats_features", total_records)
       self._assertSummaryHasCount(
-          sess.run(summary_t), "record_stats_feature-values", total_records)
+          self.evaluate(summary_t), "record_stats_feature-values",
+          total_records)
       self._assertSummaryHasSum(
-          sess.run(summary_t), "record_stats_features", total_records * 4)
+          self.evaluate(summary_t), "record_stats_features", total_records * 4)
       self._assertSummaryHasSum(
-          sess.run(summary_t), "record_stats_feature-values",
+          self.evaluate(summary_t), "record_stats_feature-values",
           self._sum_keywords(1) * num_epochs + 3 * total_records)
 
 

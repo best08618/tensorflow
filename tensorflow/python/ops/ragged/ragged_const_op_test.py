@@ -183,7 +183,7 @@ class RaggedConstOpTest(test_util.TensorFlowTestCase, parameterized.TestCase):
       self.assertEqual(tuple(rt.shape.as_list()), expected_shape)
 
     with self.test_session():
-      result = rt.eval()
+      result = self.evaluate(rt)
       if rt.shape.ndims > 0:
         self.assertEqual(result.tolist(), pylist)
         if expected_shape is not None:
@@ -238,8 +238,8 @@ class RaggedConstOpTest(test_util.TensorFlowTestCase, parameterized.TestCase):
       dict(
           pylist=[1, 2, 3],
           inner_shape=(1, 1),
-          exception=ValueError,
-          message='Too many elements provided.'),
+          exception=TypeError,
+          message='Expected Tensor\'s shape'),
       dict(
           pylist=[[[1, 2], [3, 4]], [[5, 6], [7, 8]]],
           inner_shape=(2, 2),

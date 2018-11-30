@@ -10,6 +10,7 @@ STREAM_EXECUTOR_HEADERS = glob([
     "*.h",
     "cuda/*.h",
     "host/*.h",
+    "sgx/*.h",
     "lib/*.h",
     "lib/gtl/*.h",
     "platform/**/*.h",
@@ -29,6 +30,7 @@ cc_library(
         [
             "*.cc",
             "host/*.cc",
+            "sgx/*.cc",
             "cuda/cuda_platform_id.cc",
             "lib/*.cc",
             "platform/default/*.cc",

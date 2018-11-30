@@ -32,8 +32,8 @@ string PlatformKindString(PlatformKind kind) {
       return "OpenCL";
     case PlatformKind::kHost:
       return "Host";
-    case PlatformKind::kSGX:
-      return "SGX";
+    case PlatformKind::kSgx:
+      return "Sgx";
     case PlatformKind::kMock:
       return "Mock";
     default:
@@ -56,7 +56,7 @@ bool PlatformIsRunnable(PlatformKind kind) {
     case PlatformKind::kCuda:
     case PlatformKind::kOpenCL:
     case PlatformKind::kHost:
-    case PlatformKind::kSGX:
+    case PlatformKind::kSgx:
       return true;
     default:
       return false;

@@ -176,6 +176,17 @@ bool DeviceNameUtils::ParseFullName(StringPiece fullname, ParsedName* p) {
       }
       progress = true;
     }
+    // and sgx
+    if (str_util::ConsumePrefix(&fullname, "/sgx:") ||
+        str_util::ConsumePrefix(&fullname, "/SGX:")) {
+      p->has_type = true;
+      p->type = "SGX";  // Treat '/sgx:..' as uppercase '/device:SGX:...'
+      p->has_id = !str_util::ConsumePrefix(&fullname, "*");
+      if (p->has_id && !ConsumeNumber(&fullname, &p->id)) {
+        return false;
+      }
+      progress = true;
+    }
 
     if (!progress) {
       return false;

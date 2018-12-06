@@ -65,6 +65,46 @@ class ThreadPoolDeviceFactory : public DeviceFactory {
   }
 };
 
+  // For SGXThreadPoolDevices
+  // share device locality, affinity with CPU devices
+  class SGXThreadPoolDeviceFactory : public DeviceFactory {
+   public:
+    Status CreateDevices(const SessionOptions& options, const string& name_prefix,
+                         std::vector<std::unique_ptr<Device>>* devices) override {
+      int num_numa_nodes = port::NUMANumNodes();
+      int n = 1;
+      auto iter = options.config.device_count().find("SGX");
+      if (iter != options.config.device_count().end()) {
+        n = iter->second;
+      }
+      for (int i = 0; i < n; i++) {
+        string name = strings::StrCat(name_prefix, "/device:SGX:", i);
+        std::unique_ptr<ThreadPoolDevice> tpd;
+        if (options.config.experimental().use_numa_affinity()) {
+          int numa_node = i % num_numa_nodes;
+          if (numa_node != i) {
+            LOG(INFO) << "Only " << num_numa_nodes
+                      << " NUMA nodes visible in system, "
+                      << " assigning device " << name << " to NUMA node "
+                      << numa_node;
+          }
+          DeviceLocality dev_locality;
+          dev_locality.set_numa_node(numa_node);
+          tpd = absl::make_unique<ThreadPoolDevice>(
+              options, name, Bytes(256 << 20), dev_locality,
+              ProcessState::singleton()->GetCPUAllocator(numa_node));
+        } else {
+          tpd = absl::make_unique<ThreadPoolDevice>(
+              options, name, Bytes(256 << 20), DeviceLocality(),
+              ProcessState::singleton()->GetCPUAllocator(port::kNUMANoAffinity));
+        }
+        devices->push_back(std::move(tpd));
+      }
+
+      return Status::OK();
+    }
+};
 REGISTER_LOCAL_DEVICE_FACTORY("CPU", ThreadPoolDeviceFactory, 60);
+REGISTER_LOCAL_DEVICE_FACTORY("SGX", SGXThreadPoolDeviceFactory, 60);
 
 }  // namespace tensorflow

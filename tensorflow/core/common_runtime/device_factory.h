@@ -64,7 +64,7 @@ class DeviceFactory {
   // 'priority' field when registering their device to something
   // higher than the packaged devices.  See calls to
   // REGISTER_LOCAL_DEVICE_FACTORY to see the existing priorities used
-  // for built-in devices.
+  // for uwbuilt-in devices.
   static int32 DevicePriority(const string& device_type);
 };
 

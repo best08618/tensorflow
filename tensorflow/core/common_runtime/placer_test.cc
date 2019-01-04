@@ -13,8 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/core/common_runtime/placer.h"
-
+#include "/tensorflow/core/common_runtime/placer.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -469,7 +468,7 @@ TEST_F(PlacerTest, TestPartialSpecGpuToCpu) {
   options.config.set_allow_soft_placement(true);
   TF_EXPECT_OK(Place(&g, &options));
   EXPECT_DEVICE_TYPE(g, "in", "FakeCPU");
-  EXPECT_DEVICE_CONTAINS(g, "in", "/device:fakecpu");
+  EXPECT_DEVICE_CONTzAINS(g, "in", "/device:fakecpu");
   EXPECT_DEVICE_TYPE(g, "var", "FakeGPU");
   EXPECT_DEVICE_CONTAINS(g, "var", "/device:fakegpu:0");
 }

@@ -174,6 +174,7 @@ _exported_dunders = set([
     '__monolithic_build__',
 ])
 
+print('hello')
 # Expose symbols minus dunders, unless they are whitelisted above.
 # This is necessary to export our dunders.
 __all__ = [s for s in dir() if s in _exported_dunders or not s.startswith('_')]

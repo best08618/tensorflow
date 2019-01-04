@@ -746,7 +746,7 @@ Status Placer::Run() {
       }
     }
   }
-
+   LOG(INFO)<<"=================finish 2nd function===================\n";
   // 3. For each node, assign a device based on the constraints in the
   // disjoint node set.
   std::vector<Node*> second_pass;
@@ -758,7 +758,6 @@ Status Placer::Run() {
       LogDeviceAssignment(node);
       continue;
     }
-
     // Heuristic A: prefer to place "generators" with their only
     // consumers.
     //
@@ -772,6 +771,7 @@ Status Placer::Run() {
 
     std::vector<Device*>* devices;
     Status status = colocation_graph.GetDevicesForNode(node, &devices);
+    LOG(INFO)<<"================Get device from GetDevicesForNode FUNCTION===================\n";
     if (!status.ok()) {
       return AttachDef(
           errors::InvalidArgument("Cannot assign a device for operation '",
@@ -813,11 +813,13 @@ Status Placer::Run() {
 
     AssignAndLog(assigned_device, node);
   }
+  LOG(INFO)<<"=================finish 3rd function===================\n";
 
   // 4. Perform a second pass assignment for those nodes explicitly
   // skipped during the first pass.
   for (Node* node : second_pass) {
     std::vector<Device*>* devices;
+    //LOG(INFO)<<"devices in second pass"<<devices;
     Status status = colocation_graph.GetDevicesForNode(node, &devices);
     if (!status.ok()) {
       return AttachDef(
@@ -881,9 +883,10 @@ void Placer::AssignAndLog(int assigned_device, Node* node) const {
 void Placer::LogDeviceAssignment(const Node* node) const {
   // Log placement if log_device_placement is set.
   if (log_device_placement_) {
-    printf("%s: (%s): %s\n", node->name().c_str(), node->type_string().c_str(),
-           node->assigned_device_name().c_str());
-    LOG(INFO) << node->name() << ": "
+  //  printf("%s: (%s): %s\n", node->name().c_str(), node->type_string().c_str(),
+  //         node->assigned_device_name().c_str());
+    LOG(INFO) << "Log device assignment"
+              << node->name() << ": "
               << "(" << node->type_string() << ")"
               << node->assigned_device_name();
   }

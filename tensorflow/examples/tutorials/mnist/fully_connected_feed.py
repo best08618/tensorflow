@@ -237,7 +237,7 @@ if __name__ == '__main__':
       help='Number of steps to run trainer.'
   )
   parser.add_argument(
-      '--hidden1',
+      '--hidden1',	
       type=int,
       default=128,
       help='Number of units in hidden layer 1.'

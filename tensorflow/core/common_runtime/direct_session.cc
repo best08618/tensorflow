@@ -249,6 +249,8 @@ DirectSession::DirectSession(const SessionOptions& options,
       factory_(factory),
       cancellation_manager_(new CancellationManager()),
       operation_timeout_in_ms_(options_.config.operation_timeout_in_ms()) {
+
+  LOG(INFO) << "==================Enter to Direct Session ==============================";
   const int thread_pool_size =
       options_.config.session_inter_op_thread_pool_size();
   if (thread_pool_size > 0) {
@@ -410,7 +412,7 @@ Status DirectSession::CreateDebuggerState(
                                   callable_options.feed().end());
   std::vector<string> output_names(callable_options.fetch().begin(),
                                    callable_options.fetch().end());
-  std::vector<string> target_names(callable_options.target().begin(),
+  std::vector<string> target_names(callable_options.target().begiSn(),
                                    callable_options.target().end());
 
   TF_RETURN_IF_ERROR(debugger_state->get()->PublishDebugMetadata(

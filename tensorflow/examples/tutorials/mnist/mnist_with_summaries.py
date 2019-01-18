@@ -40,7 +40,7 @@ def train():
   mnist = input_data.read_data_sets(FLAGS.data_dir,
                                     fake_data=FLAGS.fake_data)
 
-  sess = tf.InteractiveSession()
+  sess = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
   # Create a multilayer model.
 
   # Input placeholders
@@ -65,15 +65,16 @@ def train():
 
   def variable_summaries(var):
     """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
-    with tf.name_scope('summaries'):
-      mean = tf.reduce_mean(var)
-      tf.summary.scalar('mean', mean)
-      with tf.name_scope('stddev'):
-        stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-      tf.summary.scalar('stddev', stddev)
-      tf.summary.scalar('max', tf.reduce_max(var))
-      tf.summary.scalar('min', tf.reduce_min(var))
-      tf.summary.histogram('histogram', var)
+    with tf.device('cpu:0'):
+        with tf.name_scope('summaries'):
+          mean = tf.reduce_mean(var)
+          tf.summary.scalar('mean', mean)
+          with tf.name_scope('stddev'):
+            stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+          tf.summary.scalar('stddev', stddev)
+          tf.summary.scalar('max', tf.reduce_max(var))
+          tf.summary.scalar('min', tf.reduce_min(var))
+          tf.summary.histogram('histogram', var)
 
   def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
     """Reusable code for making a simple neural net layer.
@@ -93,20 +94,25 @@ def train():
         variable_summaries(biases)
       with tf.name_scope('Wx_plus_b'):
         preactivate = tf.matmul(input_tensor, weights) + biases
-        tf.summary.histogram('pre_activations', preactivate)
+        print('weight : %s',weights)
+        with tf.device('cpu:0'):
+            tf.summary.histogram('pre_activations', preactivate)
       activations = act(preactivate, name='activation')
-      tf.summary.histogram('activations', activations)
+      print ('===========================activations',activations)
+      with tf.device('cpu:0'):
+          tf.summary.histogram('activations', activations)
       return activations
 
-  hidden1 = nn_layer(x, 784, 500, 'layer1')
+  with tf.device('cpu:0'):
+      hidden1 = nn_layer(x, 784, 500, 'layer1')
 
   with tf.name_scope('dropout'):
     keep_prob = tf.placeholder(tf.float32)
     tf.summary.scalar('dropout_keep_probability', keep_prob)
     dropped = tf.nn.dropout(hidden1, keep_prob)
-
   # Do not apply softmax activation yet, see below.
-  y = nn_layer(dropped, 500, 10, 'layer2', act=tf.identity)
+  with tf.device('gpu:0'):
+    y = nn_layer(dropped, 500, 10, 'layer2', act=tf.identity)
 
   with tf.name_scope('cross_entropy'):
     # The raw formulation of cross-entropy,
@@ -125,6 +131,7 @@ def train():
   tf.summary.scalar('cross_entropy', cross_entropy)
 
   with tf.name_scope('train'):
+    print ('==============================Training is started from here==================================')
     train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(
         cross_entropy)
 

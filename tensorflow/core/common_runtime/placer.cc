@@ -771,7 +771,7 @@ Status Placer::Run() {
 
     std::vector<Device*>* devices;
     Status status = colocation_graph.GetDevicesForNode(node, &devices);
-    LOG(INFO)<<"================Get device from GetDevicesForNode FUNCTION===================\n";
+    //LOG(INFO)<<"================Get device from GetDevicesForNode FUNCTION===================\n";
     if (!status.ok()) {
       return AttachDef(
           errors::InvalidArgument("Cannot assign a device for operation '",

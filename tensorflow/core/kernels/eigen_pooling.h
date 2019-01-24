@@ -384,6 +384,7 @@ struct reducer_traits<AvgPoolMeanReducer<float>, GpuDevice> {
   enum { Cost = 1, PacketAccess = false };
 };
 
+
 }  // namespace internal
 
 #if !defined(EIGEN_HAS_INDEX_LIST)

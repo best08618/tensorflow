@@ -219,6 +219,7 @@ class BaseGPUDeviceFactory : public DeviceFactory {
   // has been initialized by the process.
   std::unordered_map<int, bool> visible_gpu_initialized_;
 };
+
 class BaseSGXDeviceFactory : public DeviceFactory {
  public:
   Status CreateDevices(const SessionOptions& options, const string& name_prefix,

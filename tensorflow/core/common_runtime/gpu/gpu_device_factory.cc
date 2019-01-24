@@ -56,6 +56,7 @@ class GPUDevice : public BaseGPUDevice {
   bool force_gpu_compatible_ = false;
 };
 
+
 class GPUDeviceFactory : public BaseGPUDeviceFactory {
  private:
   BaseGPUDevice* CreateGPUDevice(const SessionOptions& options,
@@ -70,8 +71,22 @@ class GPUDeviceFactory : public BaseGPUDeviceFactory {
   }
 };
 
+class SGXDeviceFactory : public BaseSGXDeviceFactory {
+ private:
+  BaseGPUDevice* CreateSGXDevice(const SessionOptions& options,
+                                 const string& name, Bytes memory_limit,
+                                 const DeviceLocality& locality,
+                                 TfGpuId tf_gpu_id,
+                                 const string& physical_device_desc,
+                                 Allocator* gpu_allocator,
+                                 Allocator* cpu_allocator) override {
+    return new GPUDevice(options, name, memory_limit, locality, tf_gpu_id,
+                         physical_device_desc, gpu_allocator, cpu_allocator);
+  }
+};
+
 REGISTER_LOCAL_DEVICE_FACTORY("GPU", GPUDeviceFactory, 210);
-REGISTER_LOCAL_DEVICE_FACTORY("sgx",GPUDeviceFactory,100);
+REGISTER_LOCAL_DEVICE_FACTORY("sgx",SGXDeviceFactory,100);
 
 //------------------------------------------------------------------------------
 // A CPUDevice that optimizes for interaction with GPUs in the

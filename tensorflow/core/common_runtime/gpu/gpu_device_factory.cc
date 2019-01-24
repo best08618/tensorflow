@@ -56,9 +56,9 @@ class GPUDevice : public BaseGPUDevice {
   bool force_gpu_compatible_ = false;
 };
 
-class SgxDevice : public BaseGPUDevice {
+class SGXDevice : public BaseGPUDevice {
  public:
-  SgxDevice(const SessionOptions& options, const string& name,
+  SGXDevice(const SessionOptions& options, const string& name,
             Bytes memory_limit, const DeviceLocality& locality,
             TfGpuId tf_gpu_id, const string& physical_device_desc,
             Allocator* gpu_allocator, Allocator* cpu_allocator)
@@ -112,13 +112,13 @@ class SGXDeviceFactory : public BaseSGXDeviceFactory {
                                  const string& physical_device_desc,
                                  Allocator* gpu_allocator,
                                  Allocator* cpu_allocator) override {
-    return new SgxDevice(options, name, memory_limit, locality, tf_gpu_id,
+    return new SGXDevice(options, name, memory_limit, locality, tf_gpu_id,
                          physical_device_desc, gpu_allocator, cpu_allocator);
   }
 };
 
 REGISTER_LOCAL_DEVICE_FACTORY("GPU", GPUDeviceFactory, 210);
-REGISTER_LOCAL_DEVICE_FACTORY("sgx",SGXDeviceFactory,100);
+REGISTER_LOCAL_DEVICE_FACTORY("SGX",SGXDeviceFactory,100);
 
 //------------------------------------------------------------------------------
 // A CPUDevice that optimizes for interaction with GPUs in the
@@ -146,7 +146,6 @@ class GPUCompatibleCPUDevice : public ThreadPoolDevice {
       return ThreadPoolDevice::GetAllocator(attr);
     }
   }
-
  private:
   bool force_gpu_compatible_ = false;
 };

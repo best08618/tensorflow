@@ -62,7 +62,12 @@ class PerOpGpuDevice {
   virtual const Eigen::GpuDevice& device() const = 0;
 };
 
-// A class that devices can subclass to pass around
+class PerOpSgxDevice {
+ public:
+  virtual ~PerOpSgxDevice() {}
+  virtual const Eigen::SgxDevice& device() const = 0;
+};
+
 // Device-specific context to OpKernels.
 class DeviceContext : public core::RefCounted {
  public:
@@ -204,6 +209,7 @@ class DeviceBase {
   // for devices that do not implement an eigen_gpu_device. Overridden
   // by GPU devices to return a derived type.
   virtual PerOpGpuDevice* MakeGpuDevice() { return nullptr; }
+  virtual PerOpSgxDevice* MakeSgxDevice() { return nullptr; } 
 
   virtual DeviceBase* UnderlyingDevice() { return this; }
   virtual const DeviceBase* UnderlyingDevice() const { return this; }

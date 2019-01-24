@@ -44,7 +44,7 @@ void DeviceSet::FindMatchingDevices(const DeviceNameUtils::ParsedName& spec,
   // for the same spec, maybe we should have a cache of some sort
   devices->clear();
   for (Device* d : devices_) {
-    if (DeviceNameUtils::IsCompleteSpecification(spec, d->parsed_name())) {
+   if (DeviceNameUtils::IsCompleteSpecification(spec, d->parsed_name())) {
       devices->push_back(d);
     }
   }

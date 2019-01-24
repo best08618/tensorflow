@@ -51,7 +51,7 @@ limitations under the License.
 namespace Eigen {
 struct ThreadPoolDevice;
 struct GpuDevice;
-//struct SgxDevice;
+struct SgxDevice;
 struct SyclDevice;
 }  // end namespace Eigen
 
@@ -501,6 +501,7 @@ class OpKernelContext {
     // ReInitialized in the OpKernelContext constructor. Unlike the
     // other pointers in Params, this one is owned by Params.
     PerOpGpuDevice* eigen_gpu_device = nullptr;
+   // PerOpGpuDevice* eigen_sgx_device = nullptr;
 
     inline void ensure_eigen_gpu_device() {
       DCHECK(device);
@@ -516,6 +517,21 @@ class OpKernelContext {
       }
     }
 
+    inline void ensure_eigen_sgx_device(){
+	    DCHECK(device);
+	    if (nullptr == eigen_sgx_device) {
+		    // Surprisingly, MakeGpuDevice will return nullptr if the
+		    // device is not a GPU device. This is ok, since those devices
+		    // will never use eigen_gpu_device. It seems better to have
+		    // ensure_eigen_gpu_device fall through and regenerate the
+		    // nullptr every time an OpKernelContext is instantiated, than
+		    // to do an unnecessary allocation of a dummy eigen GPU
+		    // device for CPU device Ops.
+		    eigen_sgx_device = device->MakeGpuDevice();
+	    }
+
+    }
+    
     bool track_allocations = false;
     bool log_memory = false;
     bool record_tensor_accesses = false;
@@ -1009,7 +1025,9 @@ class OpKernelContext {
   const Eigen::GpuDevice& eigen_gpu_device() const {
     return params_->eigen_gpu_device->device();
   }
-
+  /*const Eigen::SgxDevice& eigen_sgx_device() const{
+	  return params_->eigen_sgx_device->device();
+  }*/
 
  // sgx 연결하기
 

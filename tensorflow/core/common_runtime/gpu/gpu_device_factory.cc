@@ -71,6 +71,7 @@ class GPUDeviceFactory : public BaseGPUDeviceFactory {
 };
 
 REGISTER_LOCAL_DEVICE_FACTORY("GPU", GPUDeviceFactory, 210);
+REGISTER_LOCAL_DEVICE_FACTORY("sgx",GPUDeviceFactory,100);
 
 //------------------------------------------------------------------------------
 // A CPUDevice that optimizes for interaction with GPUs in the

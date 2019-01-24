@@ -412,7 +412,7 @@ Status DirectSession::CreateDebuggerState(
                                   callable_options.feed().end());
   std::vector<string> output_names(callable_options.fetch().begin(),
                                    callable_options.fetch().end());
-  std::vector<string> target_names(callable_options.target().begiSn(),
+  std::vector<string> target_names(callable_options.target().begin(),
                                    callable_options.target().end());
 
   TF_RETURN_IF_ERROR(debugger_state->get()->PublishDebugMetadata(

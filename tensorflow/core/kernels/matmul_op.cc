@@ -34,6 +34,7 @@ namespace tensorflow {
 
 typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
+typedef Eigen::GpuDevice SGXDevice;
 #ifdef TENSORFLOW_USE_SYCL
 typedef Eigen::SyclDevice SYCLDevice;
 #endif  // TENSORFLOW_USE_SYCL
@@ -551,6 +552,17 @@ struct MatMulFunctor<SYCLDevice, T> {
                               .Label("cublas"),                    \
                           MatMulOp<GPUDevice, T, true /* cublas */>)
 
+
+#define REGISTER_SGX(T)                                            \
+  REGISTER_KERNEL_BUILDER(                                         \
+      Name("MatMul").Device(DEVICE_SGX).TypeConstraint<T>("T"),    \
+      MatMulOp<GPDevice, T, true /* cublas, true by default */>); \
+  REGISTER_KERNEL_BUILDER(Name("MatMul")                           \
+                              .Device(DEVICE_SGX)                  \
+                              .TypeConstraint<T>("T")              \
+                              .Label("cublas"),                    \
+                          MatMulOp<GPUDevice, T, true /* cublas */>)
+
 #if defined(INTEL_MKL)
 // MKL does not support half and int32 types for matrix-multiplication, so
 // register the kernel to use default Eigen based implementations for these
@@ -577,7 +589,7 @@ TF_CALL_float(REGISTER_GPU);
 TF_CALL_double(REGISTER_GPU);
 TF_CALL_complex64(REGISTER_GPU);
 TF_CALL_complex128(REGISTER_GPU);
-TF_CALL_half(REGISTER_GPU);
+
 #endif  // GOOGLE_CUDA
 
 #ifdef TENSORFLOW_USE_SYCL

@@ -351,6 +351,7 @@ class ExecutorImpl : public Executor {
       : params_(p), graph_(std::move(g)), gview_() {
     CHECK(p.create_kernel != nullptr);
     CHECK(p.delete_kernel != nullptr);
+    LOG(INFO) << "EXECUTOR IMPLY FUNCTION CALL ";
   }
 
   ~ExecutorImpl() override {
@@ -366,7 +367,6 @@ class ExecutorImpl : public Executor {
   }
 
   Status Initialize();
-
   // Process all Nodes in the current graph, attempting to infer the
   // memory allocation attributes to be used wherever they may allocate
   // a tensor buffer.
@@ -690,6 +690,7 @@ Status ExecutorImpl::Initialize() {
     frame_info->total_inputs += n->num_inputs();
 
     Status s = params_.create_kernel(n->def(), &item->kernel);
+    LOG(INFO) << "ITEM->KERNEL" << item->kernel;
     if (!s.ok()) {
       item->kernel = nullptr;
       s = AttachDef(s, *n);

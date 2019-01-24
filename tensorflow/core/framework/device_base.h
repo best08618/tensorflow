@@ -78,7 +78,7 @@ class DeviceContext : public core::RefCounted {
   virtual void CopyCPUTensorToDevice(const Tensor* cpu_tensor, Device* device,
                                      Tensor* device_tensor,
                                      StatusCallback done) const {
-    LOG(FATAL) << "copy cpu tensor to Device ";                          
+    LOG(FATAL) << "copy cpu tensor to Device ";
     done(errors::Internal("Unrecognized device type in CPU-to-device Copy"));
   }
 

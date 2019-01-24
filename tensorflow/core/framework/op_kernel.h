@@ -1008,6 +1008,9 @@ class OpKernelContext {
   const Eigen::GpuDevice& eigen_gpu_device() const {
     return params_->eigen_gpu_device->device();
   }
+
+ // sgx 연결하기 
+
 #ifdef TENSORFLOW_USE_SYCL
   const Eigen::SyclDevice& eigen_sycl_device() const {
     return *device()->eigen_sycl_device();

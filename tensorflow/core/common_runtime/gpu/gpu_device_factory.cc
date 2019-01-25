@@ -56,19 +56,14 @@ class GPUDevice : public BaseGPUDevice {
   bool force_gpu_compatible_ = false;
 };
 
-class SGXDevice : public BaseGPUDevice {
+class SGXDevice : public GPUDevice {
  public:
   SGXDevice(const SessionOptions& options, const string& name,
             Bytes memory_limit, const DeviceLocality& locality,
             TfGpuId tf_gpu_id, const string& physical_device_desc,
             Allocator* gpu_allocator, Allocator* cpu_allocator)
-      : BaseGPUDevice(options, name, memory_limit, locality, tf_gpu_id,
-                      physical_device_desc, gpu_allocator, cpu_allocator,
-                      false /* sync every op */, 1 /* max_streams */) {
-    if (options.config.has_gpu_options()) {
-      force_gpu_compatible_ =
-          options.config.gpu_options().force_gpu_compatible();
-    }
+      : GPUDevice(options, name, memory_limit, locality, tf_gpu_id,
+                      physical_device_desc, gpu_allocator, cpu_allocator) {
   }
 
   Allocator* GetAllocator(AllocatorAttributes attr) override {

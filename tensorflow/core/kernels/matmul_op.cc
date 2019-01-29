@@ -542,14 +542,14 @@ struct MatMulFunctor<SYCLDevice, T> {
       MatMulOp<CPUDevice, T, false /* cublas, ignored for CPU */>); \
   REGISTER_CPU_EIGEN(T);
 
-//*#define REGISTER_GPU(T)                                            \
-//  REGISTER_KERNEL_BUILDER(                                         \
-//      Name("MatMul").Device(DEVICE_GPU).TypeConstraint<T>("T"),    \
-//      MatMulOp<GPUDevice, T, true /* cublas, true by default */>); \
-//  REGISTER_KERNEL_BUILDER(Name("MatMul")                           \
-//                              .Device(DEVICE_GPU)                  \
-//                              .TypeConstraint<T>("T")              \
-//                              .Label("cublas"),                    \
+#define REGISTER_GPU(T)                                            \
+  REGISTER_KERNEL_BUILDER(                                         \
+      Name("MatMul").Device(DEVICE_GPU).TypeConstraint<T>("T"),    \
+      MatMulOp<GPUDevice, T, true /* cublas, true by default */>); \
+  REGISTER_KERNEL_BUILDER(Name("MatMul")                           \
+                              .Device(DEVICE_GPU)                  \
+                              .TypeConstraint<T>("T")              \
+                              .Label("cublas"),                    \
                           MatMulOp<GPUDevice, T, true /* cublas */>)
 
 
@@ -585,10 +585,15 @@ TF_CALL_complex128(REGISTER_CPU);
 #endif
 
 #if GOOGLE_CUDA
-//TF_CALL_float(REGISTER_GPU);
-//TF_CALL_double(REGISTER_GPU);
-//TF_CALL_complex64(REGISTER_GPU);
-//TF_CALL_complex128(REGISTER_GPU);
+TF_CALL_float(REGISTER_GPU);
+TF_CALL_double(REGISTER_GPU);
+TF_CALL_complex64(REGISTER_GPU);
+TF_CALL_complex128(REGISTER_GPU);
+
+TF_CALL_float(REGISTER_SGX);
+TF_CALL_double(REGISTER_SGX);
+TF_CALL_complex64(REGISTER_SGX);
+TF_CALL_complex128(REGISTER_SGX);
 
 #endif  // GOOGLE_CUDA
 

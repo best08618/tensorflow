@@ -51,7 +51,7 @@ limitations under the License.
 namespace Eigen {
 struct ThreadPoolDevice;
 struct GpuDevice;
-//struct SgxDevice;
+struct SGXDevice;
 struct SyclDevice;
 }  // end namespace Eigen
 

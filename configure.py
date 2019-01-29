@@ -123,6 +123,7 @@ def sed_in_place(filename, old, new):
 
 
 def write_to_bazelrc(line):
+  print(_TF_BAZELRC);
   with open(_TF_BAZELRC, 'a') as f:
     f.write(line + '\n')
 
@@ -1453,7 +1454,7 @@ def main():
                       default=_TF_WORKSPACE_ROOT,
                       help="The absolute path to your active Bazel workspace.")
   args = parser.parse_args()
-
+  print (_TF_WORKSPACE_ROOT);
   # Make a copy of os.environ to be clear when functions and getting and setting
   # environment variables.
   environ_cp = dict(os.environ)

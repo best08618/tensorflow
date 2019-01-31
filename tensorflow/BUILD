@@ -15,6 +15,7 @@ exports_files([
 ])
 
 load("//tensorflow:tensorflow.bzl", "tf_cc_shared_object")
+load("//third_party/asylo/asylo/bazel:asylo_deps.bzl", "asylo_deps")
 load(
     "//tensorflow/core:platform/default/build_config.bzl",
     "tf_additional_binary_deps",

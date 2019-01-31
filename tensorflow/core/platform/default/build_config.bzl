@@ -624,6 +624,15 @@ def tf_additional_core_deps():
       ],
       "//conditions:default": [],
   })
+  #+ select({
+  #    "//tensorflow:with_asylo_support_windows_override": [],
+  #    "//tensorflow:with_asylo_support_android_override": [],
+  #    "//tensorflow:with_asylo_support_ios_override": [],
+  #    "//tensorflow:with_asylo_support": [
+  #        "//tensorflow/core/platform/asylo:helloworld",
+  #    ],
+  #    "//conditions:default": [],
+  #})
 
 # TODO(jart, jhseu): Delete when GCP is default on.
 def tf_additional_cloud_op_deps():

@@ -12,8 +12,8 @@ http_archive(
 
 load("@io_bazel_rules_closure//closure:defs.bzl", "closure_repositories")
 
-closure_repositories()
 
+closure_repositories()
 
 # We must check the bazel version before trying to parse any other BUILD
 # files, in case the parsing of those build files depends on the bazel
@@ -46,6 +46,11 @@ load("//tensorflow:workspace.bzl", "tf_workspace")
 
 # Please add all new TensorFlow dependencies in workspace.bzl.
 tf_workspace()
+
+local_repository(
+    name = "com_google_asylo",
+    path = "/third_party/asylo",
+)
 
 new_http_archive(
     name = "inception_v1",

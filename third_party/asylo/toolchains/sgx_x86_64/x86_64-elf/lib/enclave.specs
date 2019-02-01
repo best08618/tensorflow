@@ -1,0 +1,11 @@
+%rename link_gcc_c_sequence                enclave_link_gcc_c_sequence
+
+*enclave_libgloss:
+-lenclave
+
+*enclave_libc:
+%{!specs=nano.specs:-lc} %{specs=nano.specs:-lc_nano}
+
+*link_gcc_c_sequence:
+%(enclave_link_gcc_c_sequence) --start-group %G %(enclave_libc) %(enclave_libgloss) --end-group
+

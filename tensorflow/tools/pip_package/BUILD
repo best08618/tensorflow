@@ -5,7 +5,6 @@ package(default_visibility = ["//visibility:private"])
 
 load(
     "//tensorflow:tensorflow.bzl",
-
     "if_not_windows",
     "if_windows",
     "transitive_hdrs",
@@ -122,7 +121,6 @@ filegroup(
         "//third_party/eigen3:LICENSE",
         "//third_party/fft2d:LICENSE",
         "//third_party/hadoop:LICENSE.txt",
-        "//third_party/asylo:LICENCE.txt",
         "@absl_py//absl/flags:LICENSE",
         "@arm_neon_2_x86_sse//:LICENSE",
         "@astor_archive//:LICENSE",

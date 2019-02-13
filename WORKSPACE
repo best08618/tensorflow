@@ -51,6 +51,7 @@ local_repository(
     name = "com_google_asylo",
     path = "//home/mobileos/tensorflow/third_party/asylo/sdk",
 )
+
 load("@com_google_asylo//asylo/bazel:asylo_deps.bzl", "asylo_deps",
      "asylo_backend_deps", "asylo_go_deps", "asylo_testonly_deps")
 asylo_deps()

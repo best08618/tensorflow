@@ -92,6 +92,7 @@ def tf_workspace(path_prefix="", tf_repo_name=""):
       build_file = clean_dep("//third_party/mkl_dnn:mkldnn.BUILD"),
   )
 
+#conflict with asylo absl===================================================================================
   tf_http_archive(
       name = "com_google_absl",
       urls = [
@@ -102,6 +103,7 @@ def tf_workspace(path_prefix="", tf_repo_name=""):
      strip_prefix = "abseil-cpp-9613678332c976568272c8f4a78631a29159271d",
      build_file = clean_dep("//third_party:com_google_absl.BUILD"),
   )
+
 
   tf_http_archive(
       name = "eigen_archive",
@@ -479,16 +481,17 @@ def tf_workspace(path_prefix="", tf_repo_name=""):
       strip_prefix = "jsoncpp-11086dd6a7eba04289944367ca82cea71299ed70",
       build_file = clean_dep("//third_party:jsoncpp.BUILD"),
   )
-
-  tf_http_archive(
-      name = "boringssl",
-      urls = [
-          "https://mirror.bazel.build/github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
-          "https://github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
-      ],
-      sha256 = "524ba98a56300149696481b4cb9ddebd0c7b7ac9b9f6edee81da2d2d7e5d2bb3",
-      strip_prefix = "boringssl-a0fb951d2a26a8ee746b52f3ba81ab011a0af778",
-  )
+# conflict with asylo boring ssl===========================================================
+#
+#  tf_http_archive(
+#      name = "boringssl",
+#      urls = [
+#          "https://mirror.bazel.build/github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
+#          "https://github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
+#      ],
+#      sha256 = "524ba98a56300149696481b4cb9ddebd0c7b7ac9b9f6edee81da2d2d7e5d2bb3",
+#      strip_prefix = "boringssl-a0fb951d2a26a8ee746b52f3ba81ab011a0af778",
+#  )
 
   tf_http_archive(
       name = "zlib_archive",

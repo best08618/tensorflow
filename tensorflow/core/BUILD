@@ -98,6 +98,7 @@ load("//tensorflow:tensorflow.bzl", "tf_cuda_cc_test")
 load("//tensorflow:tensorflow.bzl", "tf_version_info_genrule")
 load("//tensorflow:tensorflow.bzl", "tf_cuda_only_cc_test")
 
+
 # For platform specific build config
 load(
     "//tensorflow/core:platform/default/build_config.bzl",

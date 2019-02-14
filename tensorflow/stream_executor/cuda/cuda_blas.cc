@@ -2902,6 +2902,7 @@ void initialize_cublas() {
           [](internal::StreamExecutorInterface *parent) -> blas::BlasSupport * {
             cuda::CUDAExecutor *cuda_executor =
                 dynamic_cast<cuda::CUDAExecutor *>(parent);
+	    LOG(INFO) << "=======Initilize cublas()==============";
             if (cuda_executor == nullptr) {
               LOG(ERROR)
                   << "Attempting to initialize an instance of the cuBLAS "

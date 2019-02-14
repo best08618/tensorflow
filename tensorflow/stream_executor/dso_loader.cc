@@ -44,6 +44,7 @@ string GetCudaVersion() { return TF_CUDA_VERSION; }
 string GetCudnnVersion() { return TF_CUDNN_VERSION; }
 
 /* static */ port::Status DsoLoader::GetCublasDsoHandle(void** dso_handle) {
+  LOG(INFO) << "Load Cublas";
   return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
                                       "cublas", GetCudaVersion()),
                                   GetCudaLibraryDirPath()),
@@ -127,6 +128,7 @@ static mutex& GetRpathMutex() {
 /* static */ port::Status DsoLoader::GetDsoHandle(port::StringPiece path,
                                                   void** dso_handle,
                                                   LoadKind load_kind) {
+  LOG(INFO) << "Load DSO Handle";
   if (load_kind != LoadKind::kLocal) {
     return port::Status(port::error::INVALID_ARGUMENT,
                         "Only LoadKind::kLocal is currently supported");

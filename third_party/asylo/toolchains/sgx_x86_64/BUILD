@@ -27,7 +27,7 @@ TOOLCHAINS = [
 cc_toolchain_suite(
     name = "crosstool",
     toolchains = dict([
-       [
+        [
             "k8",
             ":cc-compiler-k8-gcc",
         ],
@@ -86,3 +86,4 @@ cc_toolchain(
     supports_param_files = 0,
     toolchain_identifier = "asylo_k8",
 )
+

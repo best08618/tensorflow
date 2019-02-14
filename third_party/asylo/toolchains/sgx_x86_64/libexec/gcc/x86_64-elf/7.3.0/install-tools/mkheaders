@@ -53,7 +53,7 @@ if [ x$1 != x ] ; then
   prefix=$1
   shift
 else
-  prefix=/home/mobileos/tensorflow/third_party/asylo/toolchains/sgx_x86_64
+  prefix=/home/mobileos/asylo/toolchains/sgx_x86_64
 fi
 
 # Allow for alternate isysroot in which to find headers

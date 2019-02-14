@@ -482,16 +482,16 @@ def tf_workspace(path_prefix="", tf_repo_name=""):
       build_file = clean_dep("//third_party:jsoncpp.BUILD"),
   )
 # conflict with asylo boring ssl===========================================================
-#
-#  tf_http_archive(
-#      name = "boringssl",
-#      urls = [
-#          "https://mirror.bazel.build/github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
-#          "https://github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
-#      ],
-#      sha256 = "524ba98a56300149696481b4cb9ddebd0c7b7ac9b9f6edee81da2d2d7e5d2bb3",
-#      strip_prefix = "boringssl-a0fb951d2a26a8ee746b52f3ba81ab011a0af778",
-#  )
+
+  tf_http_archive(
+      name = "boringssl",
+      urls = [
+          "https://mirror.bazel.build/github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
+          "https://github.com/google/boringssl/archive/a0fb951d2a26a8ee746b52f3ba81ab011a0af778.tar.gz",
+      ],
+      sha256 = "524ba98a56300149696481b4cb9ddebd0c7b7ac9b9f6edee81da2d2d7e5d2bb3",
+      strip_prefix = "boringssl-a0fb951d2a26a8ee746b52f3ba81ab011a0af778",
+  )
 
   tf_http_archive(
       name = "zlib_archive",

@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/home/mobileos/tensorflow/third_party/asylo/toolchains/sgx_x86_64/lib/gcc/x86_64-elf/7.3.0/plugin'
+libdir='/home/mobileos/asylo/toolchains/sgx_x86_64/lib/gcc/x86_64-elf/7.3.0/plugin'

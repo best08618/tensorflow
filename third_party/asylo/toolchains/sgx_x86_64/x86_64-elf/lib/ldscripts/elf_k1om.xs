@@ -3,7 +3,7 @@ OUTPUT_FORMAT("elf64-k1om", "elf64-k1om",
 	      "elf64-k1om")
 OUTPUT_ARCH(k1om)
 ENTRY(_start)
-SEARCH_DIR("/home/mobileos/tensorflow/third_party/asylo/toolchains/sgx_x86_64/x86_64-elf/lib");
+SEARCH_DIR("/home/mobileos/asylo/toolchains/sgx_x86_64/x86_64-elf/lib");
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */

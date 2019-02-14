@@ -3,7 +3,7 @@ OUTPUT_FORMAT("elf32-i386", "elf32-i386",
 	      "elf32-i386")
 OUTPUT_ARCH(i386)
 ENTRY(_start)
-SEARCH_DIR("/home/mobileos/tensorflow/third_party/asylo/toolchains/sgx_x86_64/i386-elf/lib");
+SEARCH_DIR("/home/mobileos/asylo/toolchains/sgx_x86_64/i386-elf/lib");
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */

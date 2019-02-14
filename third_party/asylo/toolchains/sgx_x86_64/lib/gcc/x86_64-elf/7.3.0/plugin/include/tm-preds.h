@@ -1,5 +1,5 @@
 /* Generated automatically by the program 'build/genpreds'
-   from the machine description file '/home/mobileos/tensorflow/third_party/asylo/gcc-gcc-7_3_0-release/gcc/config/i386/i386.md'.  */
+   from the machine description file '/home/mobileos/asylo/sdk/gcc-gcc-7_3_0-release/gcc/config/i386/i386.md'.  */
 
 #ifndef GCC_TM_PREDS_H
 #define GCC_TM_PREDS_H

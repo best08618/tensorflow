@@ -2929,6 +2929,5 @@ void initialize_cublas() {
 }
 
 }  // namespace stream_executor
-
 REGISTER_MODULE_INITIALIZER(register_cublas,
                             { stream_executor::initialize_cublas(); });

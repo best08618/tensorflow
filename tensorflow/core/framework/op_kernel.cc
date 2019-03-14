@@ -945,7 +945,12 @@ static KernelRegistry* GlobalKernelRegistryTyped() {
 
 static string Key(StringPiece op_type, const DeviceType& device_type,
                   StringPiece label) {
-  return strings::StrCat(op_type, ":", DeviceTypeString(device_type), ":",
+
+    //if(op_type =="MatMul")
+      //     return strings::StrCat(op_type, ":", "SGX", ":",label);
+  	//LOG(INFO) << strings::StrCat(op_type, ":", DeviceTypeString(device_type), ":",
+          //               label);
+	return strings::StrCat(op_type, ":", DeviceTypeString(device_type), ":",
                          label);
 }
 
@@ -1038,6 +1043,7 @@ Status FindKernelRegistration(const DeviceType& device_type,
   const string& label = GetNodeAttrString(node_def, kKernelAttr);
 
   const string key = Key(node_def.op(), device_type, label);
+  LOG(INFO) << "KEY: " << key;
   auto regs = GlobalKernelRegistryTyped()->equal_range(key);
   for (auto iter = regs.first; iter != regs.second; ++iter) {
     // If there is a kernel registered for the op and device_type,
@@ -1155,9 +1161,12 @@ Status CreateOpKernel(DeviceType device_type, DeviceBase* device,
                       const NodeDef& node_def, int graph_def_version,
                       OpKernel** kernel) {
   VLOG(1) << "Instantiating kernel for node: " << SummarizeNodeDef(node_def);
-
+  LOG(INFO) << "Instantiating kernel for node: " << SummarizeNodeDef(node_def);
   // Look up the Op registered for this op name.
   const OpDef* op_def = nullptr;
+  LOG(INFO) << device->name();
+  if(node_def.op() == "MatMul" && device->name() =="/job:localhost/replica:0/task:0/device:SGX:0")
+	device_type = "SGX";
   Status s = OpRegistry::Global()->LookUpOpDef(node_def.op(), &op_def);
   if (!s.ok()) return s;
 
@@ -1201,7 +1210,7 @@ Status CreateOpKernel(DeviceType device_type, DeviceBase* device,
   // OpRegistry::Global(), we consult the kernel registry to decide
   // the kernel's input and output memory types.
   MemoryTypeVector input_memory_types;
-  MemoryTypeVector output_memory_types;
+  MemoryTypeVector output_memory_types; // memory 잡아서 opkernel instance?
   TF_RETURN_IF_ERROR(MemoryTypesForNode(OpRegistry::Global(), device_type,
                                         node_def, &input_memory_types,
                                         &output_memory_types));

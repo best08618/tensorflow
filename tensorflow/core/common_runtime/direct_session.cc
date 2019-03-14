@@ -488,7 +488,6 @@ Status DirectSession::RunInternal(int64 step_id, const RunOptions& run_options,
   args.sync_on_finish = sync_on_finish_;
 
   const bool do_trace = (run_options.trace_level() > RunOptions::NO_TRACE);
-
   bool update_cost_model = false;
   if (options_.config.graph_options().build_cost_model() > 0) {
     const int64 build_cost_model_every =
@@ -1154,6 +1153,7 @@ Status DirectSession::CreateExecutors(
       return errors::Internal("Could not find device: ", partition_name);
     }
     item->flib = lib;
+    LOG(INFO)<< "lib is "<< lib;
 
     LocalExecutorParams params;
     params.device = device;
@@ -1172,6 +1172,7 @@ Status DirectSession::CreateExecutors(
         return lib->CreateKernel(ndef, kernel);
       }
       auto create_fn = [lib, &ndef](OpKernel** kernel) {
+	LOG(INFO)<<"CREATE FN";
         return lib->CreateKernel(ndef, kernel);
       };
       // Kernels created for subgraph nodes need to be cached.  On

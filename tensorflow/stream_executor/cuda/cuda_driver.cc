@@ -296,6 +296,8 @@ ScopedActivateContext::ScopedActivateContext(CudaContext* cuda_context) {
 
   VLOG(3) << "ScopedActivateContext switching context from " << tls->id
           << " to " << cuda_context->id();
+  LOG(INFO)<<"ScopedActivateContext switching context from " << tls->id
+          << " to " << cuda_context->id();
 
   to_restore_ = (tls->depth == 1 ? nullptr : tls->context);
 

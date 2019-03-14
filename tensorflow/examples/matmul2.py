@@ -8,7 +8,7 @@ with tf.device('GPU'):
 
 	w = tf.constant([ [2.],[2.],[2.]], dtype=tf.float32)
 
-#with tf.device('GPU'):
+with tf.device('GPU'):
 	y = tf.matmul(x,w)
 
 

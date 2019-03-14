@@ -39,6 +39,7 @@ Status OpRegistryInterface::LookUpOpDef(const string& op_type_name,
   *op_def = nullptr;
   const OpRegistrationData* op_reg_data = nullptr;
   TF_RETURN_IF_ERROR(LookUp(op_type_name, &op_reg_data));
+  //LOG(INFO) << op_type_name;
   *op_def = &op_reg_data->op_def;
   return Status::OK();
 }

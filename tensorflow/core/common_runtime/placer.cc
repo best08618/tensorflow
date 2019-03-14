@@ -366,8 +366,9 @@ class ColocationGraph {
                 node->requested_device(), " but available devices are [ ",
                 str_util::Join(device_names, ", "), " ]. Make sure ",
                 "the device specification refers to a valid device.");
-          } else if (specified_device_name.has_type) {
+          } else if (specified_device_name.has_type) {  //has type의미하는 부분 찾기 
             return errors::InvalidArgument(
+            //    "ERRORRRORORRORO",
                 "Could not satisfy explicit device specification '",
                 node->requested_device(), "' because no supported kernel for ",
                 specified_device_name.type, " devices is available.",

@@ -43,7 +43,7 @@ const char* const DEVICE_SYCL = "SYCL";
 const std::string DeviceName<Eigen::ThreadPoolDevice>::value = DEVICE_CPU;
 #if GOOGLE_CUDA
 const std::string DeviceName<Eigen::GpuDevice>::value = DEVICE_GPU;
-const std::string DeviceName<Eigen::SgxDevice>::value = DEVICE_SGX;
+const std::string DeviceName<Eigen::SGXDevice>::value = DEVICE_SGX;
 #endif  // GOOGLE_CUDA
 #ifdef TENSORFLOW_USE_SYCL
 const std::string DeviceName<Eigen::SyclDevice>::value = DEVICE_SYCL;

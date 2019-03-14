@@ -127,7 +127,7 @@ CUDAExecutor::~CUDAExecutor() {
 port::Status CUDAExecutor::Init(int device_ordinal,
                                 DeviceOptions device_options) {
   device_ordinal_ = device_ordinal;
-
+  LOG(INFO) << " Init cuda executor";
   auto status = CUDADriver::Init();
   if (!status.ok()) {
     return status;
@@ -211,7 +211,7 @@ bool CUDAExecutor::GetKernel(const MultiKernelLoaderSpec &spec,
   CUDAKernel *cuda_kernel = AsCUDAKernel(kernel);
   CUmodule module;
   const string *kernelname;
-
+  LOG(INFO) << "GetKernel on kernel " << kernel << " : " << kernel->name();
   VLOG(3) << "GetKernel on kernel " << kernel << " : " << kernel->name();
 
   if (spec.has_cuda_cubin_in_memory()) {

@@ -179,6 +179,7 @@ bool DeviceNameUtils::ParseFullName(StringPiece fullname, ParsedName* p) {
 
     if (str_util::ConsumePrefix(&fullname, "/sgx:") ||
         str_util::ConsumePrefix(&fullname, "/SGX:")) {
+      LOG(INFO) << "MAKE HAS TYPE TURE";
       p->has_type = true;
       p->type = "SGX";  // Treat '/sgx:..' as uppercase '/device:SGX:...'
       p->has_id = !str_util::ConsumePrefix(&fullname, "*");

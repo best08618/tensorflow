@@ -111,7 +111,7 @@ class MatmulParameters {
   uint64 hash_code_;
 };
 
-typedef Eigen::GpuDevice GPUDevice;
+//typedef Eigen::GpuDevice GPUDevice;
 
 #endif  // GOOGLE_CUDA
 

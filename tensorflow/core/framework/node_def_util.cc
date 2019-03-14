@@ -252,6 +252,7 @@ static const string& kEmptyString = *new string();
 
 const string& GetNodeAttrString(const AttrSlice& attrs, StringPiece attr_name) {
   const AttrValue* attr_value = attrs.Find(attr_name);
+  //LOG(INFO) << "attr_value:  " << attr_name;
   if (attr_value == nullptr) {
     return kEmptyString;
   }

@@ -38,7 +38,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 
 namespace Eigen {
-  class SgxDevice;
+  struct SGXDevice;
 };
 
 namespace tensorflow {
@@ -94,7 +94,7 @@ struct DeviceName<Eigen::GpuDevice> {
 };
 
 template<>
-struct DeviceName<Eigen::SgxDevice> {
+struct DeviceName<Eigen::SGXDevice> {
   static const std::string value;
 };
 

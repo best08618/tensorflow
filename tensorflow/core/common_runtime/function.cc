@@ -374,6 +374,7 @@ Status FunctionLibraryRuntimeImpl::CreateKernel(
 
   if (lib_def->Find(ndef.op()) == nullptr) {
     // A primitive operation. Creates the registered kernel.
+    LOG(INFO) << DeviceType(device_->attributes().device_type());
     return CreateNonCachedKernel(device_, this, ndef, graph_def_version_,
                                  kernel);
   }

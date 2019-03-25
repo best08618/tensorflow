@@ -1165,8 +1165,9 @@ Status CreateOpKernel(DeviceType device_type, DeviceBase* device,
   // Look up the Op registered for this op name.
   const OpDef* op_def = nullptr;
   LOG(INFO) << device->name();
-  if(node_def.op() == "MatMul" && device->name() =="/job:localhost/replica:0/task:0/device:SGX:0")
-	device_type = "SGX";
+  LOG(INFO) << "----DEVUCE TYPE:"<<device_type;
+  //if(node_def.op() == "MatMul" && device->name() =="/job:localhost/replica:0/task:0/device:SGX:0")
+	    //device_type = "SGX";
   Status s = OpRegistry::Global()->LookUpOpDef(node_def.op(), &op_def);
   if (!s.ok()) return s;
 

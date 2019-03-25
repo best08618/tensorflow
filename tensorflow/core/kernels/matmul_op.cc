@@ -458,7 +458,7 @@ static void launch(
         using se::blas::Transpose;
           LOG(INFO)<<"=================================Sgx===============================================";
 //        LOG(INFO)<< "Launch Matmul with cublas ";
-        Transpose trans[] = {Transpose::kNoTranspose, Transpose::kTranspose};
+      /*  Transpose trans[] = {Transpose::kNoTranspose, Transpose::kTranspose};
         const uint64 m = a.dim_size(1 - dim_pair[0].first);
         const uint64 k = a.dim_size(dim_pair[0].first);
         const uint64 n = b.dim_size(1 - dim_pair[0].second);
@@ -615,7 +615,7 @@ static void launch(
                   "), m=", m, ", n=", n, ", k=", k));
             }
           }
-        }
+        }*/
       }
 
       static void GetBlasGemmAlgorithm(OpKernelConstruction* ctx,

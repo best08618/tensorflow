@@ -161,6 +161,7 @@ class DeviceSpec(object):
           if self.device_type is not None:
             raise ValueError("Cannot specify multiple device types: %s" % spec)
           self.device_type = y[0].upper()
+          #print("=================",self.device_type)
           if ly == 2 and y[1] != "*":
             self.device_index = int(y[1])
         elif ly == 3 and y[0] == "device":

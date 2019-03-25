@@ -253,9 +253,10 @@ BaseGPUDevice::BaseGPUDevice(const SessionOptions& options, const string& name,
                              const string& physical_device_desc,
                              Allocator* gpu_allocator, Allocator* cpu_allocator,
                              bool sync_every_op, int32 max_streams)
-    : LocalDevice(options, Device::BuildDeviceAttributes(name, DEVICE_GPU,
+    : LocalDevice(options, Device::BuildDeviceAttributes(name, (name.find("SGX")!=string::npos)? DEVICE_SGX:DEVICE_GPU,
                                                          memory_limit, locality,
                                                          physical_device_desc)),
+
       gpu_allocator_(gpu_allocator),
       cpu_allocator_(cpu_allocator),
       scoped_allocator_mgr_(new ScopedAllocatorMgr(name)),

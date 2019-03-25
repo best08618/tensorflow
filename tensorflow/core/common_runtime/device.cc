@@ -43,8 +43,6 @@ DeviceAttributes Device::BuildDeviceAttributes(
   DeviceAttributes da;
   da.set_name(name);
   LOG(INFO) << "****************NAME IN BUILD DEVICE ATTRIBUTES"<< name;
-  if(name.find("SGX") != string::npos)
-	device = "SGX";
   do {
     da.set_incarnation(random::New64());
   } while (da.incarnation() == 0);  // This proto field must not be zero

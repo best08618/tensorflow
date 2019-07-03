@@ -351,7 +351,7 @@ class ExecutorImpl : public Executor {
       : params_(p), graph_(std::move(g)), gview_() {
     CHECK(p.create_kernel != nullptr);
     CHECK(p.delete_kernel != nullptr);
-    LOG(INFO) << "EXECUTOR IMPLY FUNCTION CALL ";
+  //  LOG(INFO) << "EXECUTOR IMPLY FUNCTION CALL ";
   }
 
   ~ExecutorImpl() override {
@@ -690,7 +690,7 @@ Status ExecutorImpl::Initialize() {
     frame_info->total_inputs += n->num_inputs();
 
     Status s = params_.create_kernel(n->def(), &item->kernel);
-    LOG(INFO) << "ITEM->KERNEL" << item->kernel;
+    //LOG(INFO) << "ITEM->KERNEL" << item->kernel;
     if (!s.ok()) {
       item->kernel = nullptr;
       s = AttachDef(s, *n);
@@ -1684,9 +1684,9 @@ void ExecutorState::Process(TaggedNode tagged_node, int64 scheduled_usec) {
       nodestats::SetAllStart(stats);
     }
     if (1) {
-      LOG(INFO) << "Process node: " << id << " step " << params.step_id << " "
-              << SummarizeNode(*node) << " is dead: " << tagged_node.is_dead
-              << " device: " << device->name();
+    //  LOG(INFO) << "Process node: " << id << " step " << params.step_id << " "
+    //          << SummarizeNode(*node) << " is dead: " << tagged_node.is_dead
+    //          << " device: " << device->name();
     }
 
     /*
@@ -2765,8 +2765,8 @@ Status CreateNonCachedKernel(Device* device, FunctionLibraryRuntime* flib,
                              OpKernel** kernel) {
   const auto device_type = DeviceType(device->attributes().device_type());
   auto allocator = device->GetAllocator(AllocatorAttributes());
-  LOG(INFO) << "CREATE NON CACHED KERNEL" ;
-  LOG(INFO) << "--------DEVICE TYPE: "<<device_type; 
+  //LOG(INFO) << "CREATE NON CACHED KERNEL" ;
+  //LOG(INFO) << "--------DEVICE TYPE: "<<device_type;
   return CreateOpKernel(device_type, device, allocator, flib, ndef,
                         graph_def_version, kernel);
 }

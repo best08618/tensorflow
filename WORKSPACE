@@ -46,7 +46,7 @@ load("//tensorflow:workspace.bzl", "tf_workspace")
 
 # Please add all new TensorFlow dependencies in workspace.bzl.
 tf_workspace()
-
+'''
 local_repository(
     name = "com_google_asylo",
     path = "//home/mobileos/tensorflow/third_party/asylo/sdk",
@@ -60,7 +60,7 @@ asylo_testonly_deps()
 
 load("@com_google_asylo//asylo/bazel:sgx_deps.bzl", "sgx_deps")
 sgx_deps()
-
+'''
 new_http_archive(
     name = "inception_v1",
     build_file = "models.BUILD",

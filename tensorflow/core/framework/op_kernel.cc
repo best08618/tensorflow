@@ -1043,7 +1043,7 @@ Status FindKernelRegistration(const DeviceType& device_type,
   const string& label = GetNodeAttrString(node_def, kKernelAttr);
 
   const string key = Key(node_def.op(), device_type, label);
-  LOG(INFO) << "KEY: " << key;
+  //LOG(INFO) << "KEY: " << key;
   auto regs = GlobalKernelRegistryTyped()->equal_range(key);
   for (auto iter = regs.first; iter != regs.second; ++iter) {
     // If there is a kernel registered for the op and device_type,
@@ -1161,11 +1161,11 @@ Status CreateOpKernel(DeviceType device_type, DeviceBase* device,
                       const NodeDef& node_def, int graph_def_version,
                       OpKernel** kernel) {
   VLOG(1) << "Instantiating kernel for node: " << SummarizeNodeDef(node_def);
-  LOG(INFO) << "Instantiating kernel for node: " << SummarizeNodeDef(node_def);
+//  LOG(INFO) << "Instantiating kernel for node: " << SummarizeNodeDef(node_def);
   // Look up the Op registered for this op name.
   const OpDef* op_def = nullptr;
-  LOG(INFO) << device->name();
-  LOG(INFO) << "----DEVUCE TYPE:"<<device_type;
+  //LOG(INFO) << device->name();
+  //LOG(INFO) << "----DEViCE TYPE:"<<device_type;
   //if(node_def.op() == "MatMul" && device->name() =="/job:localhost/replica:0/task:0/device:SGX:0")
 	    //device_type = "SGX";
   Status s = OpRegistry::Global()->LookUpOpDef(node_def.op(), &op_def);

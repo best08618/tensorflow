@@ -17,8 +17,15 @@ limitations under the License.
 
 #define EIGEN_USE_THREADS
 
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/framework/tensor_util.h"
+#include "tensorflow/core/framework/tensor.pb.h"
+#include "tensorflow/core/framework/types.h"
+//#include "tensorflow/core/framework/variant_encode_decode.h"
+#include "tensorflow/core/framework/variant_tensor_data.h"
+#include "tensorflow/core/lib/strings/strcat.h"
+#include <dlfcn.h>
 #include "tensorflow/core/kernels/matmul_op.h"
-
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/register_types.h"
@@ -40,6 +47,9 @@ typedef Eigen::GpuDevice SGXDevice;
 typedef Eigen::SyclDevice SYCLDevice;
 #endif  // TENSORFLOW_USE_SYCL
 
+// matmul for gprc 
+typedef char * (* matmul_grpc_main)(int, char **);
+matmul_grpc_main matmul_fn = NULL;
 template <typename Device, typename T, bool USE_CUBLAS>
 struct LaunchMatMul;
 
@@ -269,7 +279,7 @@ struct LaunchMatMul<GPUDevice, T, true  /*USE_CUBLAS*/> {
     using se::blas::kNoAlgorithm;
     using se::blas::ProfileResult;
     using se::blas::Transpose;
-    LOG(INFO)<< "Launch Matmul with cublas ";
+  //  LOG(INFO)<< "Launch Matmul with cublas ";
     Transpose trans[] = {Transpose::kNoTranspose, Transpose::kTranspose};
     const uint64 m = a.dim_size(1 - dim_pair[0].first);
     const uint64 k = a.dim_size(dim_pair[0].first);
@@ -456,7 +466,16 @@ static void launch(
         using se::blas::kNoAlgorithm;
         using se::blas::ProfileResult;
         using se::blas::Transpose;
-          LOG(INFO)<<"=================================Sgx===============================================";
+        LOG(INFO)<<"=================================Sgx DEVICE===============================================";
+      /*  TensorProto a_proto, b_proto;
+        a.AsProtoTensorContent(&a_proto);
+        b.AsProtoTensorContent(&b_proto);
+        LOG(INFO)<<"pROTO OK";
+        string a_str,b_str;
+        a_proto.SerializeToString(&a_str);
+        b_proto.SerializeToString(&b_str);
+*/
+
 //        LOG(INFO)<< "Launch Matmul with cublas ";
       /*  Transpose trans[] = {Transpose::kNoTranspose, Transpose::kTranspose};
         const uint64 m = a.dim_size(1 - dim_pair[0].first);
@@ -647,8 +666,55 @@ class MatMulOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     const Tensor& a = ctx->input(0);
     const Tensor& b = ctx->input(1);
+    string a_str, b_str;
+    string a_size, b_size;
+    //tensor to string
+  /*
+    Tensor t1(a.dtype());
+    LOG(INFO) << a.DebugString();
+    Tensor t2(b.dtype());
+    LOG(INFO) << b.DebugString();
+    TensorProto a_proto, b_proto;
+    LOG(INFO)<<"pROTO OK";
+    string a_str,b_str;
+    a.AsProtoTensorContent(&a_proto);
+    b.AsProtoTensorContent(&b_proto);
+    a_proto.SerializeToString(&a_str);
+    b_proto.SerializeToString(&b_str);
+    LOG(INFO) << (a_str);
+    LOG(INFO) << (b_str);
+
+    ctx->device()->MakeTensorFromProto(
+		    a_proto, ctx->output_alloc_attr(0), &t1);
+
+    LOG(INFO) << t1.DebugString();
+    //////////////////////////////////////
+
+*/
 
     // Check that the dimensions of the two matrices are valid.
+
+    void * handle = NULL;
+    char * str;
+    char* argv[5];
+    if (matmul_fn ==NULL){
+	    handle = dlopen("./libgrpc_matmul.so",RTLD_NOW | RTLD_GLOBAL);
+	    if(handle == NULL){	
+		    //LOG(INFO) << dlerror();
+	    }
+	    else{
+		    matmul_fn = (matmul_grpc_main)dlsym(handle, "matmul");
+		    if(matmul_fn == NULL){
+			    LOG(INFO) << dlerror();
+		    }
+		    else{
+			    str = (char *)"matmul";
+			    argv[0] = str; 
+		    }
+	    }
+
+
+    }
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(a.shape()),
                 errors::InvalidArgument("In[0] is not a matrix"));
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(b.shape()),
@@ -656,7 +722,7 @@ class MatMulOp : public OpKernel {
     Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> dim_pair;
     dim_pair[0].first = transpose_a_ ? 0 : 1;
     dim_pair[0].second = transpose_b_ ? 1 : 0;
-
+    DataType dtype = a.dtype();
     OP_REQUIRES(
         ctx, a.dim_size(dim_pair[0].first) == b.dim_size(dim_pair[0].second),
         errors::InvalidArgument(
@@ -683,9 +749,50 @@ class MatMulOp : public OpKernel {
       f(ctx->eigen_device<Device>(), out->flat<T>());
       return;
     }
-
+    
+    
+    if(matmul_fn != NULL) {
+	/*a_str = a.shape().DebugString();
+    	a_str +=" "+a.SummarizeValue(1000000);
+   	b_str = b.shape().DebugString();
+    	b_str += " " + b.SummarizeValue(1000000);*/
+	a_size = a.shape().DebugString();
+	a_str= a.SummarizeValueSGX(10000000);
+	b_size= b.shape().DebugString();
+	b_str =b.SummarizeValueSGX(10000000);
+	argv[1] = (char *)a_size.c_str();
+	argv[2] = (char* )a_str.c_str();
+	//LOG(INFO)<<"A_STR" <<a_str.c_str();
+	argv[3] = (char *)b_size.c_str();
+	//LOG(INFO)<<"B_STR" << b.SummarizeValue(1000000);
+	argv[4] = (char*) b_str.c_str();
+	char *  grpc_result =matmul_fn(5,argv);
+	std::string imm_result = (std::string) grpc_result;
+	std::size_t pos1 = imm_result.find(" ");
+	//LOG(INFO)<< "pos1"<<pos1;
+	std::string str_result = imm_result.substr(pos1,imm_result.length()-pos1);
+	//LOG(INFO)<< str_result;
+	std::vector<float> v ;
+	Tensor output(dtype,out_shape);
+	char * token =std::strtok((char*)str_result.c_str()," ");
+	float imm;
+	for(;token!= NULL; token=std::strtok(NULL," "))
+	{
+			imm =atof(token);
+			v.push_back(imm);
+		  
+	}
+	std::copy_n(v.begin(),v.size(),output.flat<float>().data());
+	LOG(INFO)<<output.SummarizeValue(300);
+	//out = output;
+	ctx->set_output(0, output);
+	//LOG(INFO)<<"FINISH OUTPUT ALLOCATION";
+	 
+    } 
+    else{
     LaunchMatMul<Device, T, USE_CUBLAS>::launch(
         ctx, a, b, dim_pair, &algorithms_, use_autotune_, out);
+     } 
   }
 
  private:

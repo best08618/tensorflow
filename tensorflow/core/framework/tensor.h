@@ -430,7 +430,7 @@ class Tensor {
 
   /// Render the first `max_entries` values in `*this` into a string.
   string SummarizeValue(int64 max_entries) const;
-
+  string SummarizeValueSGX(int64 max_entries) const;
   /// A human-readable summary of the tensor suitable for debugging.
   string DebugString() const;
 

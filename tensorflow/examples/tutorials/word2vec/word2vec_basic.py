@@ -54,6 +54,7 @@ if not os.path.exists(FLAGS.log_dir):
 url = 'http://mattmahoney.net/dc/'
 
 
+print(gettempdir())
 # pylint: disable=redefined-outer-name
 def maybe_download(filename, expected_bytes):
   """Download a file if not present, and make sure it's the right size."""
@@ -71,7 +72,7 @@ def maybe_download(filename, expected_bytes):
   return local_filename
 
 
-filename = maybe_download('text8.zip', 31344016)
+filename = maybe_download('/home/mobileos/text8.zip', 31344016)
 
 
 # Read the data into a list of strings.
@@ -347,7 +348,7 @@ try:
   low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only, :])
   labels = [reverse_dictionary[i] for i in xrange(plot_only)]
   plot_with_labels(low_dim_embs, labels, os.path.join(gettempdir(), 'tsne.png'))
-
 except ImportError as ex:
   print('Please install sklearn, matplotlib, and scipy to show embeddings.')
   print(ex)
+

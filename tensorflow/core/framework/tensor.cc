@@ -28,7 +28,7 @@ limitations under the License.
 //   an decoding T[] into/from a Cord, etc.
 
 #include "tensorflow/core/framework/tensor.h"
-
+#include <math.h>
 #include "tensorflow/core/framework/allocation_description.pb.h"
 #include "tensorflow/core/framework/log_memory.h"
 #include "tensorflow/core/framework/resource_handle.pb.h"
@@ -899,7 +899,7 @@ namespace {
 // usage and easy to change later. And there's the extra benefit of not
 // accessing an 'internal' namespace.
 inline const strings::AlphaNum& PrintOneElement(const strings::AlphaNum& a) {
-  return a;
+  return  a;
 }
 inline float PrintOneElement(const Eigen::half& h) {
   return static_cast<float>(h);
@@ -922,7 +922,7 @@ void PrintOneDim(int dim_index, const gtl::InlinedVector<int64, 4>& shape,
     return;
   }
   // Loop every element of one dim.
-  for (int64 i = 0; i < element_count; i++) {
+   for (int64 i = 0; i < element_count; i++) {
     bool flag = false;
     if (*data_index < limit) {
       strings::StrAppend(result, "[");
@@ -939,15 +939,45 @@ void PrintOneDim(int dim_index, const gtl::InlinedVector<int64, 4>& shape,
 }
 
 template <typename T>
+void PrintOneDimSGX(int dim_index, const gtl::InlinedVector<int64, 4>& shape,
+                 int64 limit, int shape_size, const T* data, int64* data_index,
+                 string* result) {
+  if (*data_index >= limit) return;
+  int64 element_count = shape[dim_index];
+  // We have reached the right-most dimension of the tensor.
+  if (dim_index == shape_size - 1) {
+    for (int64 i = 0; i < element_count; i++) {
+      if (*data_index >= limit) return;
+      if (i > 0) strings::StrAppend(result, ",");
+      strings::StrAppend(result, PrintOneElement(data[(*data_index)++]));
+    }
+    return;
+  }
+  // Loop every element of one dim.
+   for (int64 i = 0; i < element_count; i++) {
+    bool flag = false;
+   /* if (*data_index < limit) {
+      strings::StrAppend(result, "[");
+      flag = true;
+    }*/
+    // As for each element, print the sub-dim.
+    PrintOneDimSGX(dim_index + 1, shape, limit, shape_size, data, data_index,
+                result);
+    if (*data_index < limit ) {
+      strings::StrAppend(result, ",");
+    }
+  }
+}
+
+template <typename T>
 string SummarizeArray(int64 limit, int64 num_elts,
                       const TensorShape& tensor_shape, const char* data) {
   string ret;
   const T* array = reinterpret_cast<const T*>(data);
-
   const gtl::InlinedVector<int64, 4> shape = tensor_shape.dim_sizes();
   if (shape.empty()) {
     for (int64 i = 0; i < limit; ++i) {
-      if (i > 0) strings::StrAppend(&ret, " ");
+      if (i > 0) strings::StrAppend(&ret," ");
       strings::StrAppend(&ret, PrintOneElement(array[i]));
     }
     if (num_elts > limit) strings::StrAppend(&ret, "...");
@@ -960,7 +990,87 @@ string SummarizeArray(int64 limit, int64 num_elts,
   if (num_elts > limit) strings::StrAppend(&ret, "...");
   return ret;
 }
+
+
+template <typename T>
+string SummarizeArraySGX(int64 limit, int64 num_elts,
+                      const TensorShape& tensor_shape, const char* data) {
+  string ret;
+  const T* array = reinterpret_cast<const T*>(data);
+  const gtl::InlinedVector<int64, 4> shape = tensor_shape.dim_sizes();
+  if (shape.empty()) {
+    strings::StrAppend(&ret,"[");
+    for (int64 i = 0; i < limit; ++i) {
+      if (i > 0) strings::StrAppend(&ret," ");
+      strings::StrAppend(&ret, PrintOneElement(array[i]));
+    }
+    strings::StrAppend(&ret,"]");
+    if (num_elts > limit) strings::StrAppend(&ret, "...");
+    return ret;
+  }
+  int64 data_index = 0;
+  const int shape_size = tensor_shape.dims();
+  strings::StrAppend(&ret,"[");
+  PrintOneDimSGX(0, shape, limit, shape_size, array, &data_index, &ret);
+  strings::StrAppend(&ret,"]");
+  if (num_elts > limit) strings::StrAppend(&ret, "...");
+  return ret;
+}
 }  // namespace
+
+
+string Tensor::SummarizeValueSGX(int64 max_entries) const {
+  const int64 num_elts = NumElements();
+  size_t limit = std::min(max_entries, num_elts);
+  if ((limit > 0) && (buf_ == nullptr)) {
+    return strings::StrCat("uninitialized Tensor of ", num_elts,
+                           " elements of type ", dtype());
+  }
+  const char* data = limit > 0 ? tensor_data().data() : nullptr;
+  switch (dtype()){
+    case DT_HALF:
+      return SummarizeArraySGX<Eigen::half>(limit, num_elts, shape_, data);
+    case DT_FLOAT:
+      return SummarizeArraySGX<float>(limit, num_elts, shape_, data);
+      break;
+    case DT_DOUBLE:
+      return SummarizeArraySGX<double>(limit, num_elts, shape_, data);
+      break;
+    case DT_UINT32:
+      return SummarizeArraySGX<uint32>(limit, num_elts, shape_, data);
+      break;
+    case DT_INT32:
+      return SummarizeArraySGX<int32>(limit, num_elts, shape_, data);
+      break;
+    case DT_UINT8:
+    case DT_QUINT8:
+      return SummarizeArraySGX<uint8>(limit, num_elts, shape_, data);
+      break;
+    case DT_UINT16:
+    case DT_QUINT16:
+      return SummarizeArraySGX<uint16>(limit, num_elts, shape_, data);
+      break;
+    case DT_INT16:
+    case DT_QINT16:
+      return SummarizeArraySGX<int16>(limit, num_elts, shape_, data);
+      break;
+    case DT_INT8:
+    case DT_QINT8:
+      return SummarizeArraySGX<int8>(limit, num_elts, shape_, data);
+      break;
+    case DT_UINT64:
+      return SummarizeArraySGX<uint64>(limit, num_elts, shape_, data);
+      break;
+    case DT_INT64:
+      return SummarizeArraySGX<int64>(limit, num_elts, shape_, data);
+      break;
+    case DT_BOOL:
+      // TODO(tucker): Is it better to emit "True False..."?  This
+      // will emit "1 0..." which is more compact.
+      return SummarizeArraySGX<bool>(limit, num_elts, shape_, data);
+      break;
+  }
+}
 
 string Tensor::SummarizeValue(int64 max_entries) const {
   const int64 num_elts = NumElements();

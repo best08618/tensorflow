@@ -55,7 +55,7 @@ class GPUDevice : public BaseGPUDevice {
  private:
   bool force_gpu_compatible_ = false;
 };
-
+/*
 class SGXDevice : public GPUDevice {
  public:
   SGXDevice(const SessionOptions& options, const string& name,
@@ -81,7 +81,7 @@ class SGXDevice : public GPUDevice {
  private:
   bool force_gpu_compatible_ = false;
 };
-
+*/
 
 class GPUDeviceFactory : public BaseGPUDeviceFactory {
  private:
@@ -96,7 +96,7 @@ class GPUDeviceFactory : public BaseGPUDeviceFactory {
                          physical_device_desc, gpu_allocator, cpu_allocator);
   }
 };
-
+/*
 class SGXDeviceFactory : public BaseSGXDeviceFactory {
  private:
   BaseGPUDevice* CreateSGXDevice(const SessionOptions& options,
@@ -110,9 +110,9 @@ class SGXDeviceFactory : public BaseSGXDeviceFactory {
                          physical_device_desc, gpu_allocator, cpu_allocator);
   }
 };
-
+*/
 REGISTER_LOCAL_DEVICE_FACTORY("GPU", GPUDeviceFactory, 210);
-REGISTER_LOCAL_DEVICE_FACTORY("SGX",SGXDeviceFactory,100);
+//REGISTER_LOCAL_DEVICE_FACTORY("SGX",SGXDeviceFactory,100);
 
 //------------------------------------------------------------------------------
 // A CPUDevice that optimizes for interaction with GPUs in the

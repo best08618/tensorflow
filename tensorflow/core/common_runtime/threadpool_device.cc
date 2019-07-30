@@ -68,7 +68,34 @@ ThreadPoolDevice::ThreadPoolDevice(const SessionOptions& options,
 #endif  // INTEL_MKL
 }
 
+SGXDevice::SGXDevice(const SessionOptions& options,
+                                   const string& name, Bytes memory_limit,
+                                   const DeviceLocality& locality,
+                                   Allocator* allocator)
+    : ThreadPoolDevice(options,  name, memory_limit, locality,allocator)
+       {
+#ifdef INTEL_MKL
+#ifdef _OPENMP
+  const char* user_omp_threads = getenv("OMP_NUM_THREADS");
+  if (user_omp_threads == nullptr) {
+    // OMP_NUM_THREADS controls MKL's intra-op parallelization
+    // Default to available physical cores
+    const int mkl_intra_op = port::NumSchedulableCPUs();
+    const int ht = port::NumHyperthreadsPerCore();
+    omp_set_num_threads((mkl_intra_op + ht - 1) / ht);
+  } else {
+    uint64 user_val = 0;
+    if (strings::safe_strtou64(user_omp_threads, &user_val)) {
+      // Superflous but triggers OpenMP loading
+      omp_set_num_threads(user_val);
+    }
+  }
+#endif  // _OPENMP
+#endif  // INTEL_MKL
+}
+
 ThreadPoolDevice::~ThreadPoolDevice() {}
+SGXDevice::~SGXDevice() {}
 
 void ThreadPoolDevice::Compute(OpKernel* op_kernel, OpKernelContext* context) {
   // When Xprof/ThreadScape profiling is off (which is the default), the
@@ -80,8 +107,23 @@ void ThreadPoolDevice::Compute(OpKernel* op_kernel, OpKernelContext* context) {
 
   op_kernel->Compute(context);
 }
+void SGXDevice::Compute(OpKernel* op_kernel, OpKernelContext* context) {
+  // When Xprof/ThreadScape profiling is off (which is the default), the
+  // following code is simple enough that its overhead is negligible.
+  tracing::ScopedActivity activity(op_kernel->name(), op_kernel->type_string(),
+                                   op_kernel->IsExpensive());
+  tracing::ScopedRegion region(tracing::EventCategory::kCompute,
+                               op_kernel->name());
+
+  op_kernel->Compute(context);
+}
+
 
 Allocator* ThreadPoolDevice::GetAllocator(AllocatorAttributes attr) {
+  return allocator_;
+}
+
+Allocator* SGXDevice::GetAllocator(AllocatorAttributes attr) {
   return allocator_;
 }
 
@@ -96,7 +138,33 @@ Allocator* ThreadPoolDevice::GetScopedAllocator(AllocatorAttributes attr,
   return allocator_;
 }
 
+
+Allocator* SGXDevice::GetScopedAllocator(AllocatorAttributes attr,
+                                                int64 step_id) {
+  if (attr.scope_id > 0) {
+    return scoped_allocator_mgr_->GetContainer(step_id)->GetInstance(
+        attr.scope_id);
+  }
+  LOG(FATAL) << "Unexpected call to ThreadPoolDevice::GetScopedAllocator "
+             << "attr.scope_id = " << attr.scope_id;
+  return allocator_;
+}
+
 Status ThreadPoolDevice::MakeTensorFromProto(
+    const TensorProto& tensor_proto, const AllocatorAttributes alloc_attrs,
+    Tensor* tensor) {
+  if (tensor_proto.dtype() > 0 && tensor_proto.dtype() <= DataType_MAX) {
+    Tensor parsed(tensor_proto.dtype());
+    if (parsed.FromProto(cpu_allocator(), tensor_proto)) {
+      *tensor = std::move(parsed);
+      return Status::OK();
+    }
+  }
+  return errors::InvalidArgument("Cannot parse tensor from proto: ",
+                                 ProtoDebugString(tensor_proto));
+}
+
+Status SGXDevice::MakeTensorFromProto(
     const TensorProto& tensor_proto, const AllocatorAttributes alloc_attrs,
     Tensor* tensor) {
   if (tensor_proto.dtype() > 0 && tensor_proto.dtype() <= DataType_MAX) {

@@ -45,6 +45,27 @@ class ThreadPoolDeviceFactory : public DeviceFactory {
   }
 };
 
-REGISTER_LOCAL_DEVICE_FACTORY("CPU", ThreadPoolDeviceFactory, 60);
+class SGXDeviceFactory : public DeviceFactory {
+ public:
+  Status CreateDevices(const SessionOptions& options, const string& name_prefix,
+                       std::vector<Device*>* devices) override {
+    // TODO(zhifengc/tucker): Figure out the number of available CPUs
+    // and/or NUMA configuration.
+    int n = 1;
+    auto iter = options.config.device_count().find("SGX");
+    if (iter != options.config.device_count().end()) {
+      n = iter->second;
+    }
+    for (int i = 0; i < n; i++) {
+      string name = strings::StrCat(name_prefix, "/device:SGX:", i);
+      devices->push_back(new ThreadPoolDevice(
+          options, name, Bytes(256 << 20), DeviceLocality(), cpu_allocator()));
+    }
 
+    return Status::OK();
+  }
+};
+
+REGISTER_LOCAL_DEVICE_FACTORY("CPU", ThreadPoolDeviceFactory, 60);
+REGISTER_LOCAL_DEVICE_FACTORY("SGX", SGXDeviceFactory, 60);
 }  // namespace tensorflow

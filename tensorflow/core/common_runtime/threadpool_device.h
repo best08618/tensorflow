@@ -47,6 +47,31 @@ class ThreadPoolDevice : public LocalDevice {
   std::unique_ptr<ScopedAllocatorMgr> scoped_allocator_mgr_;
 };
 
+
+class SGXDevice : public ThreadPoolDevice {
+ public:
+  SGXDevice(const SessionOptions& options, const string& name,
+                   Bytes memory_limit, const DeviceLocality& locality,
+                   Allocator* allocator);
+  ~SGXDevice() override;
+
+  void Compute(OpKernel* op_kernel, OpKernelContext* context) override;
+  Allocator* GetAllocator(AllocatorAttributes attr) override;
+  Allocator* GetScopedAllocator(AllocatorAttributes attr,
+                                int64 step_id) override;
+  ScopedAllocatorMgr* GetScopedAllocatorMgr() const override {
+    return scoped_allocator_mgr_.get();
+  }
+  Status MakeTensorFromProto(const TensorProto& tensor_proto,
+                             const AllocatorAttributes alloc_attrs,
+                             Tensor* tensor) override;
+
+  Status Sync() override { return Status::OK(); }
+
+ private:
+  Allocator* allocator_;  // Not owned
+  std::unique_ptr<ScopedAllocatorMgr> scoped_allocator_mgr_;
+};
 }  // namespace tensorflow
 
 #endif  // TENSORFLOW_CORE_COMMON_RUNTIME_THREADPOOL_DEVICE_H_

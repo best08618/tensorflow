@@ -253,7 +253,7 @@ BaseGPUDevice::BaseGPUDevice(const SessionOptions& options, const string& name,
                              const string& physical_device_desc,
                              Allocator* gpu_allocator, Allocator* cpu_allocator,
                              bool sync_every_op, int32 max_streams)
-    : LocalDevice(options, Device::BuildDeviceAttributes(name, (name.find("SGX")!=string::npos)? DEVICE_SGX:DEVICE_GPU,
+    : LocalDevice(options, Device::BuildDeviceAttributes(name, /*(name.find("SGX")!=string::npos)? DEVICE_SGX:*/DEVICE_GPU,
                                                          memory_limit, locality,
                                                          physical_device_desc)),
 
@@ -884,8 +884,8 @@ Allocator* BaseGPUDevice::GetScopedAllocator(AllocatorAttributes attr,
 const int BaseGPUDeviceFactory::InterconnectMap::kSameDeviceStrength = 1000;
 const int BaseGPUDeviceFactory::InterconnectMap::kStreamExecutorStrength = 1;
 
-const int BaseSGXDeviceFactory::InterconnectMap::kSameDeviceStrength = 1000;
-const int BaseSGXDeviceFactory::InterconnectMap::kStreamExecutorStrength = 1;
+//const int BaseSGXDeviceFactory::InterconnectMap::kSameDeviceStrength = 1000;
+//const int BaseSGXDeviceFactory::InterconnectMap::kStreamExecutorStrength = 1;
 
 Status BaseGPUDeviceFactory::CreateDevices(const SessionOptions& options,
                                            const string& name_prefix,
@@ -1030,7 +1030,7 @@ Status BaseGPUDeviceFactory::CreateDevices(const SessionOptions& options,
   }
   return Status::OK();
 }
-
+/*
 Status BaseSGXDeviceFactory::CreateDevices(const SessionOptions& options,
                                            const string& name_prefix,
                                            std::vector<Device*>* devices) {
@@ -1173,7 +1173,7 @@ Status BaseSGXDeviceFactory::CreateDevices(const SessionOptions& options,
                                        it->second, devices));
   }
   return Status::OK();
-}
+}*/
 
 
 static string GetShortDeviceDescription(CudaGpuId cuda_gpu_id,
@@ -1237,7 +1237,7 @@ Status BaseGPUDeviceFactory::CreateGPUDevice(const SessionOptions& options,
   devices->push_back(gpu_device);
   return Status::OK();
 }
-
+/*
 Status BaseSGXDeviceFactory::CreateSGXDevice(const SessionOptions& options,
                                              const string& name_prefix,
                                              TfGpuId tf_gpu_id,
@@ -1283,7 +1283,7 @@ Status BaseSGXDeviceFactory::CreateSGXDevice(const SessionOptions& options,
   devices->push_back(sgx_device);
 
   return Status::OK();
-}
+}*/
 
 namespace {
 std::unique_ptr<std::map<std::pair<CudaGpuId, CudaGpuId>, bool>>
@@ -1305,7 +1305,7 @@ GetPeerAccessMap(se::Platform* platform,
 }
 
 }  // namespace
-
+/*
 Status BaseSGXDeviceFactory::GetInterconnectMaps(
     const std::vector<CudaGpuId>& visible_gpu_order, se::Platform* gpu_manager,
     std::vector<InterconnectMap>* maps) {
@@ -1324,8 +1324,8 @@ Status BaseSGXDeviceFactory::GetInterconnectMaps(
     }
   }
   return Status::OK();
-}
-
+}*/
+/*
 Status BaseSGXDeviceFactory::GetDeviceLocalities(
     int num_tf_gpus, const std::vector<InterconnectMap>& interconnects,
     LocalityMap* localities) {
@@ -1398,7 +1398,8 @@ Status BaseSGXDeviceFactory::GetDeviceLocalities(
             << " DeviceLocality: " << dev_locality.DebugString();
   }
   return Status::OK();
-}
+}*/
+
 Status BaseGPUDeviceFactory::GetInterconnectMaps(
     const std::vector<CudaGpuId>& visible_gpu_order, se::Platform* gpu_manager,
     std::vector<InterconnectMap>* maps) {
@@ -1762,6 +1763,7 @@ Status BaseGPUDeviceFactory::GetValidDeviceIds(
 
   return Status::OK();
 }
+/*
 Status BaseSGXDeviceFactory::GetValidDeviceIds(
     const std::vector<CudaGpuId>& visible_gpu_order,
     std::vector<CudaGpuId>* ids) {
@@ -1883,7 +1885,7 @@ Status BaseSGXDeviceFactory::GetValidDeviceIds(
   }
 
   return Status::OK();
-}
+}*/
 }  // namespace tensorflow
 
 #endif  // GOOGLE_CUDA

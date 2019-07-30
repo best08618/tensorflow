@@ -220,7 +220,7 @@ class BaseGPUDeviceFactory : public DeviceFactory {
   std::unordered_map<int, bool> visible_gpu_initialized_;
 };
 
-class BaseSGXDeviceFactory : public DeviceFactory {
+/*class BaseSGXDeviceFactory : public DeviceFactory {
  public:
   Status CreateDevices(const SessionOptions& options, const string& name_prefix,
                        std::vector<Device*>* devices) override;
@@ -285,7 +285,7 @@ class BaseSGXDeviceFactory : public DeviceFactory {
   // visible_gpu_initialized_[cuda_gpu_id] is true if visible GPU cuda_gpu_id
   // has been initialized by the process.
   std::unordered_map<int, bool> visible_gpu_initialized_;
-};
+};*/
 }  // namespace tensorflow
 
 #endif  // TENSORFLOW_CORE_COMMON_RUNTIME_GPU_GPU_DEVICE_H_

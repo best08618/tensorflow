@@ -47,12 +47,13 @@ typedef Eigen::GpuDevice SGXDevice;
 typedef Eigen::SyclDevice SYCLDevice;
 #endif  // TENSORFLOW_USE_SYCL
 
-// matmul for gprc 
+// matmul for gprc
 typedef char * (* matmul_grpc_main)(int, char **);
 matmul_grpc_main matmul_fn = NULL;
 template <typename Device, typename T, bool USE_CUBLAS>
 struct LaunchMatMul;
-
+string a_str, b_str;
+string a_size, b_size;
 namespace {
 // Converts a TensorFlow Tensor to an Eigen Matrix.
 template <typename T>
@@ -137,14 +138,75 @@ struct LaunchMatMulBase {
 #ifndef TENSORFLOW_USE_SYCL
     // An explicit vector-matrix multiply is much better optimized than an
     // implicit one and this is a bottleneck during non-batched inference.
+    LOG(INFO) <<ctx->device()->name();
+    if(ctx->device()->name().find("SGX") != std::string::npos)
+    {
+              void * handle = NULL;
+              char * str;
+              char* argv[5];
+              if (matmul_fn ==NULL){
+                handle = dlopen("./libgrpc_matmul.so",RTLD_NOW | RTLD_GLOBAL);
+                if(handle == NULL){
+                  //LOG(INFO) << dlerror();
+                }
+                else{
+                  matmul_fn = (matmul_grpc_main)dlsym(handle, "matmul");
+                  if(matmul_fn == NULL){
+                    LOG(INFO) << dlerror();
+                  }
+                  else{
+                    str = (char *)"matmul";
+                    argv[0] = str;
+                  }
+                }
+
+
+        }
+
+        a_size = a.shape().DebugString();
+	      a_str= a.SummarizeValueSGX(100000000000000);
+	      b_size= b.shape().DebugString();
+	      b_str =b.SummarizeValueSGX(10000000000000);
+
+        LOG(INFO) <<"OUTPUT DIM" << out->shape().DebugString();
+        TensorShape out_shape = out->shape();
+        argv[1] = (char *)a_size.c_str();
+        argv[2] = (char* )a_str.c_str();
+        //LOG(INFO)<<"A_STR" <<a_str.c_str();
+        argv[3] = (char *)b_size.c_str();
+        //LOG(INFO)<<"B_STR" << b.SummarizeValue(1000000);
+        argv[4] = (char*) b_str.c_str();
+        char *  grpc_result =matmul_fn(5,argv);
+        std::string imm_result = (std::string) grpc_result;
+        std::size_t pos1 = imm_result.find(" ");
+        //LOG(INFO)<< "pos1"<<pos1;
+        std::string str_result = imm_result.substr(pos1,imm_result.length()-pos1);
+        //LOG(INFO)<< str_result;
+        std::vector<float> v ;
+        Tensor output(a.dtype(),out_shape);
+        char * token =std::strtok((char*)str_result.c_str()," ");
+        float imm;
+        for(;token!= NULL; token=std::strtok(NULL," "))
+        {
+          imm =atof(token);
+          v.push_back(imm);
+
+        }
+        std::copy_n(v.begin(),v.size(),output.flat<float>().data());
+        LOG(INFO)<<output.SummarizeValue(300);
+        //out = output;
+        ctx->set_output(0, output);
+
+    }
     bool was_vector = ExplicitVectorMatrixOptimization<T>(a, b, dim_pair, out);
     if (!was_vector) {
 #endif  // TENSORFLOW_USE_SYCL
       functor::MatMulFunctor<Device, T>()(ctx->eigen_device<Device>(),
                                           out->matrix<T>(), a.matrix<T>(),
                                           b.matrix<T>(), dim_pair);
-#ifndef TENSORFLOW_USE_SYCL
     }
+#ifndef TENSORFLOW_USE_SYCL
+
 #endif  // TENSORFLOW_USE_SYCL
   }
 
@@ -158,6 +220,12 @@ struct LaunchMatMulCPU : LaunchMatMulBase<CPUDevice, T> {};
 
 template <typename T, bool USE_CUBLAS>
 struct LaunchMatMul<CPUDevice, T, USE_CUBLAS> : public LaunchMatMulCPU<T> {};
+
+template <typename T>
+struct LaunchMatMulSGX : LaunchMatMulBase<SGXDevice, T> {};
+
+template <typename T, bool USE_CUBLAS>
+struct LaunchMatMul<SGXDevice, T, USE_CUBLAS> : public LaunchMatMulSGX<T> {};
 
 #ifdef TENSORFLOW_USE_SYCL
 template <typename T>
@@ -451,223 +519,100 @@ struct LaunchMatMul<GPUDevice, T, true  /*USE_CUBLAS*/> {
     }
   }
 };
-
+/*
 template <typename T>
-struct LaunchMatMul<SGXDevice, T, false /* USE_CUBLAS */> {
+struct LaunchMatMul<SGXDevice, T, false /* USE_CUBLAS > {
 static void launch(
           OpKernelContext* ctx, const Tensor& a, const Tensor& b,
           const Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1>& dim_pair,
           std::vector<int64>* algorithms, bool use_autotune, Tensor* out) {
-        using se::blas::AlgorithmConfig;
-        using se::blas::ComputationType;
-        using se::blas::kDefaultAlgorithm;
-        using se::blas::kDefaultBlasGemm;
-        using se::blas::kDefaultBlasGemv;
-        using se::blas::kNoAlgorithm;
-        using se::blas::ProfileResult;
-        using se::blas::Transpose;
-        LOG(INFO)<<"=================================Sgx DEVICE===============================================";
-      /*  TensorProto a_proto, b_proto;
-        a.AsProtoTensorContent(&a_proto);
-        b.AsProtoTensorContent(&b_proto);
-        LOG(INFO)<<"pROTO OK";
-        string a_str,b_str;
-        a_proto.SerializeToString(&a_str);
-        b_proto.SerializeToString(&b_str);
-*/
 
-//        LOG(INFO)<< "Launch Matmul with cublas ";
-      /*  Transpose trans[] = {Transpose::kNoTranspose, Transpose::kTranspose};
-        const uint64 m = a.dim_size(1 - dim_pair[0].first);
-        const uint64 k = a.dim_size(dim_pair[0].first);
-        const uint64 n = b.dim_size(1 - dim_pair[0].second);
-        bool transpose_a = dim_pair[0].first == 0;
-        bool transpose_b = dim_pair[0].second == 1;
-        auto blas_transpose_a = trans[transpose_a];
-        auto blas_transpose_b = trans[transpose_b];
-
-        auto* stream = ctx->op_device_context()->stream();
-        OP_REQUIRES(ctx, stream, errors::Internal("No GPU stream available."));
-
-        auto a_ptr = AsDeviceMemory(a.template flat<T>().data(),
-                                    a.template flat<T>().size());
-        auto b_ptr = AsDeviceMemory(b.template flat<T>().data(),
-                                    b.template flat<T>().size());
-        auto c_ptr = AsDeviceMemory(out->template flat<T>().data(),
-                                    out->template flat<T>().size());
-        auto alpha = static_cast<T>(1.0);
-        auto beta = static_cast<T>(0.0);
-
-        int device_id = stream->parent()->device_ordinal();
-        DataType dtype = a.dtype();
-        MatmulParameters matmul_parameters = {
-            transpose_a, transpose_b, m, n, k, dtype, device_id,
-        };
-        AlgorithmConfig algorithm_config(kNoAlgorithm);
-
-        ComputationType computation_type;
-        bool compute_type_supported =
-            GetCublasAutotuneComputationType(dtype, &computation_type);
-        if (use_autotune && compute_type_supported && !algorithms->empty()) {
-          ProfileResult best_result;
-          // TODO(yangzihao): Unify this code with conv autotuning.
-          if (!AutoTuneMatmul::GetInstance()->Find(matmul_parameters,
-                                                   &algorithm_config)) {
-            ProfileResult profile_result;
-            for (auto profile_algorithm : (*algorithms)) {
-              // Cublas does
-              // C = A x B
-              // where A, B and C are assumed to be in column major.
-              // We want the output to be in row-major, so we can compute
-              // C' = B' x A' (' stands for transpose)
-              bool cublas_launch_status =
-                  stream
-                      ->ThenBlasGemmWithAlgorithm(
-                          blas_transpose_b, blas_transpose_a, n, m, k, alpha, b_ptr,
-                          transpose_b ? k : n, a_ptr, transpose_a ? m : k, beta,
-                          &c_ptr, n, computation_type, profile_algorithm,
-                          &profile_result)
-                      .ok();
-              if (cublas_launch_status) {
-                if (profile_result.is_valid()) {
-                  if (profile_result.elapsed_time_in_ms() <
-                      best_result.elapsed_time_in_ms()) {
-                    best_result = profile_result;
-                  }
+            void * handle = NULL;
+            char * str;
+            char* argv[5];
+            if (matmul_fn ==NULL){
+              handle = dlopen("./libgrpc_matmul.so",RTLD_NOW | RTLD_GLOBAL);
+              if(handle == NULL){
+                //LOG(INFO) << dlerror();
+              }
+              else{
+                matmul_fn = (matmul_grpc_main)dlsym(handle, "matmul");
+                if(matmul_fn == NULL){
+                  LOG(INFO) << dlerror();
+                }
+                else{
+                  str = (char *)"matmul";
+                  argv[0] = str;
                 }
               }
-            }
-            // Try BlasGemmWithProfiling
-            bool cublas_launch_status =
-                stream
-                    ->ThenBlasGemmWithProfiling(
-                        blas_transpose_b, blas_transpose_a, n, m, k, 1.0, b_ptr,
-                        transpose_b ? k : n, a_ptr, transpose_a ? m : k, 0.0,
-                        &c_ptr, n, &profile_result)
-                    .ok();
-            if (cublas_launch_status) {
-              if (profile_result.is_valid()) {
-                if (profile_result.elapsed_time_in_ms() <
-                    best_result.elapsed_time_in_ms()) {
-                  best_result = profile_result;
-                }
-              }
-            }
-            // Try BlasGemvWithProfiling
-            if (ShouldUseGemv<T>(n)) {
-              LaunchBlasGemv<T>::Compute(ctx, stream, !transpose_a,
-                                         transpose_a ? m : k, transpose_a ? k : m,
-                                         a_ptr, b_ptr, &c_ptr, &profile_result);
-              if (profile_result.is_valid()) {
-                if (profile_result.elapsed_time_in_ms() <
-                    best_result.elapsed_time_in_ms()) {
-                  best_result = profile_result;
-                }
-              }
-            }
-          }
-          // We make sure that each matmul parameter set only gets one pass of
-          // autotune. If the best result is found, assign it to algorithm_type
-          // and insert it to autotune map. If all internal kernels of
-          // cublasGemmEx() returns invalid results, we add kNoAlgorithm to the
-          // autotune map.
-          if (best_result.is_valid()) {
-            algorithm_config.set_algorithm(best_result.algorithm());
-          }
-          AutoTuneMatmul::GetInstance()->Insert(matmul_parameters,
-                                                algorithm_config);
-          if (algorithm_config.algorithm() != kNoAlgorithm &&
-              algorithm_config.algorithm() != kDefaultBlasGemm &&
-              algorithm_config.algorithm() != kDefaultBlasGemv) {
-            bool cublas_launch_status =
-                stream
-                    ->ThenBlasGemmWithAlgorithm(
-                        blas_transpose_b, blas_transpose_a, n, m, k, alpha, b_ptr,
-                        transpose_b ? k : n, a_ptr, transpose_a ? m : k, beta,
-                        &c_ptr, n, computation_type, algorithm_config.algorithm(),
-                        nullptr)
-                    .ok();
-            if (!cublas_launch_status) {
-              ctx->SetStatus(errors::Internal(
-                  "Blas GEMM with algorithm launch failed : a.shape=(",
-                  a.dim_size(0), ", ", a.dim_size(1), "), b.shape=(", b.dim_size(0),
-                  ", ", b.dim_size(1), "), m=", m, ", n=", n, ", k=", k));
-            }
-          }
-        }
-        // For the following case, we use normal BlasGemm():
-        //  1) We didn't set the use_autotune flag;
-        //  2) compute type does not support autotune;
-        //  3) no algorithm is found;
-        //  4) all internal kernels in autotune return invalid results.
-        //  For the following case, we use normal BlasGemv():
-        //  1) We didn't set the use_autotune flag but LaunchBlasGemv is supported
-        //     and n == 1.
-        //  2) We set the use_autotune flag and it picked up BlasGemv() and set the
-        //     algorithm_config.algorithm() to be kDefaultBlasGemv.
-        if (!use_autotune || !compute_type_supported || algorithms->empty() ||
-            algorithm_config.algorithm() == kNoAlgorithm ||
-            algorithm_config.algorithm() == kDefaultBlasGemm ||
-            algorithm_config.algorithm() == kDefaultBlasGemv) {
-          if (algorithm_config.algorithm() == kDefaultBlasGemv ||
-              ShouldUseGemv<T>(n)) {
-            // This is a matrix*vector multiply so use GEMV to compute A * b.
-            // Here we are multiplying in the natural order, so we have to flip
-            // the transposition flag to compensate for the tensor being stored
-            // row-major.
-            // TODO(yangzihao): Add Gemv as an autotuning option too.
-            LaunchBlasGemv<T>::Compute(ctx, stream, !transpose_a,
-                                       transpose_a ? m : k, transpose_a ? k : m,
-                                       a_ptr, b_ptr, &c_ptr, nullptr);
-          } else {
-            // Use C' = B' x A' (' stands for transpose)
-            bool blas_launch_status =
-                stream
-                    ->ThenBlasGemm(blas_transpose_b, blas_transpose_a, n, m, k,
-                                   1.0f, b_ptr, transpose_b ? k : n, a_ptr,
-                                   transpose_a ? m : k, 0.0f, &c_ptr, n)
-                    .ok();
-            if (!blas_launch_status) {
-              ctx->SetStatus(errors::Internal(
-                  "Blas GEMM launch failed : a.shape=(", a.dim_size(0), ", ",
-                  a.dim_size(1), "), b.shape=(", b.dim_size(0), ", ", b.dim_size(1),
-                  "), m=", m, ", n=", n, ", k=", k));
-            }
-          }
-        }*/
-      }
 
-      static void GetBlasGemmAlgorithm(OpKernelConstruction* ctx,
-                                       std::vector<int64>* algorithms,
-                                       bool* algorithm_set_flag) {
-        LOG(INFO)<<"=================================Sgx===============================================";
-        if (*algorithm_set_flag == false) {
-          auto* stream = ctx->device()->tensorflow_gpu_device_info()->stream;
-          stream->parent()->GetBlasGemmAlgorithms(algorithms);
-          *algorithm_set_flag = true;
-        }
-      }
-    };
+
+	    }
+
+
+
+	    LOG(INFO) <<"OUTPUT DIM" << out->shape().DebugString();
+	    TensorShape out_shape = out->shape();
+	    argv[1] = (char *)a_size.c_str();
+	    argv[2] = (char* )a_str.c_str();
+	    //LOG(INFO)<<"A_STR" <<a_str.c_str();
+	    argv[3] = (char *)b_size.c_str();
+	    //LOG(INFO)<<"B_STR" << b.SummarizeValue(1000000);
+	    argv[4] = (char*) b_str.c_str();
+	    char *  grpc_result =matmul_fn(5,argv);
+	    std::string imm_result = (std::string) grpc_result;
+	    std::size_t pos1 = imm_result.find(" ");
+	    //LOG(INFO)<< "pos1"<<pos1;
+	    std::string str_result = imm_result.substr(pos1,imm_result.length()-pos1);
+	    //LOG(INFO)<< str_result;
+	    std::vector<float> v ;
+	    Tensor output(a.dtype(),out_shape);
+	    char * token =std::strtok((char*)str_result.c_str()," ");
+	    float imm;
+	    for(;token!= NULL; token=std::strtok(NULL," "))
+	    {
+		    imm =atof(token);
+		    v.push_back(imm);
+
+	    }
+	    std::copy_n(v.begin(),v.size(),output.flat<float>().data());
+	    LOG(INFO)<<output.SummarizeValue(300);
+	    //out = output;
+	    ctx->set_output(0, output);
+	    //LOG(INFO)<<"FINISH OUTPUT ALLOCATION";
+
+
+
+}
+
+static void GetBlasGemmAlgorithm(OpKernelConstruction* ctx,
+		std::vector<int64>* algorithms,
+		bool* algorithm_set_flag) {
+	LOG(INFO)<<"=================================Sgx===============================================";
+}
+};*/
 #endif  // GOOGLE_CUDA
 
 template <typename Device, typename T, bool USE_CUBLAS>
 class MatMulOp : public OpKernel {
- public:
-  explicit MatMulOp(OpKernelConstruction* ctx)
-      : OpKernel(ctx), algorithms_set_already_(false) {
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("transpose_a", &transpose_a_));
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("transpose_b", &transpose_b_));
+	public:
+		explicit MatMulOp(OpKernelConstruction* ctx)
+			: OpKernel(ctx), algorithms_set_already_(false) {
+				OP_REQUIRES_OK(ctx, ctx->GetAttr("transpose_a", &transpose_a_));
+				OP_REQUIRES_OK(ctx, ctx->GetAttr("transpose_b", &transpose_b_));
 
-    LaunchMatMul<Device, T, USE_CUBLAS>::GetBlasGemmAlgorithm(
-        ctx, &algorithms_, &algorithms_set_already_);
-    use_autotune_ = MatmulAutotuneEnable();
-  }
+				LaunchMatMul<Device, T, USE_CUBLAS>::GetBlasGemmAlgorithm(
+						ctx, &algorithms_, &algorithms_set_already_);
+				use_autotune_ = MatmulAutotuneEnable();
+			}
 
   void Compute(OpKernelContext* ctx) override {
     const Tensor& a = ctx->input(0);
     const Tensor& b = ctx->input(1);
-    string a_str, b_str;
-    string a_size, b_size;
+    /*a_size = a.shape().DebugString();
+    a_str= a.SummarizeValue(1000);
+    b_size= b.shape().DebugString();
+    b_str =b.SummarizeValue(1000);*/
     //tensor to string
   /*
     Tensor t1(a.dtype());
@@ -693,13 +638,13 @@ class MatMulOp : public OpKernel {
 */
 
     // Check that the dimensions of the two matrices are valid.
-
+/*
     void * handle = NULL;
     char * str;
     char* argv[5];
     if (matmul_fn ==NULL){
 	    handle = dlopen("./libgrpc_matmul.so",RTLD_NOW | RTLD_GLOBAL);
-	    if(handle == NULL){	
+	    if(handle == NULL){
 		    //LOG(INFO) << dlerror();
 	    }
 	    else{
@@ -709,12 +654,12 @@ class MatMulOp : public OpKernel {
 		    }
 		    else{
 			    str = (char *)"matmul";
-			    argv[0] = str; 
+			    argv[0] = str;
 		    }
 	    }
 
 
-    }
+    }*/
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(a.shape()),
                 errors::InvalidArgument("In[0] is not a matrix"));
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(b.shape()),
@@ -722,7 +667,6 @@ class MatMulOp : public OpKernel {
     Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> dim_pair;
     dim_pair[0].first = transpose_a_ ? 0 : 1;
     dim_pair[0].second = transpose_b_ ? 1 : 0;
-    DataType dtype = a.dtype();
     OP_REQUIRES(
         ctx, a.dim_size(dim_pair[0].first) == b.dim_size(dim_pair[0].second),
         errors::InvalidArgument(
@@ -749,17 +693,14 @@ class MatMulOp : public OpKernel {
       f(ctx->eigen_device<Device>(), out->flat<T>());
       return;
     }
-    
-    
-    if(matmul_fn != NULL) {
-	/*a_str = a.shape().DebugString();
-    	a_str +=" "+a.SummarizeValue(1000000);
-   	b_str = b.shape().DebugString();
-    	b_str += " " + b.SummarizeValue(1000000);*/
+
+
+  /*  if(matmul_fn != NULL) {
 	a_size = a.shape().DebugString();
 	a_str= a.SummarizeValueSGX(10000000);
 	b_size= b.shape().DebugString();
 	b_str =b.SummarizeValueSGX(10000000);
+  LOG(INFO) <<"OUTPUT DIM" << out_shape;
 	argv[1] = (char *)a_size.c_str();
 	argv[2] = (char* )a_str.c_str();
 	//LOG(INFO)<<"A_STR" <<a_str.c_str();
@@ -780,19 +721,19 @@ class MatMulOp : public OpKernel {
 	{
 			imm =atof(token);
 			v.push_back(imm);
-		  
+
 	}
 	std::copy_n(v.begin(),v.size(),output.flat<float>().data());
 	LOG(INFO)<<output.SummarizeValue(300);
 	//out = output;
 	ctx->set_output(0, output);
 	//LOG(INFO)<<"FINISH OUTPUT ALLOCATION";
-	 
-    } 
-    else{
+
+}*/
+//    else{
     LaunchMatMul<Device, T, USE_CUBLAS>::launch(
         ctx, a, b, dim_pair, &algorithms_, use_autotune_, out);
-     } 
+  //   }
   }
 
  private:
@@ -817,6 +758,17 @@ struct MatMulFunctor<CPUDevice, T> {
   }
 };
 
+template <typename T>
+struct MatMulFunctor<SGXDevice, T> {
+  void operator()(
+      const SGXDevice& d, typename MatMulTypes<T>::out_type out,
+      typename MatMulTypes<T>::in_type in0,
+      typename MatMulTypes<T>::in_type in1,
+      const Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1>& dim_pair) {
+        LOG(INFO) << "SGX";
+
+  }
+};
 
 #ifdef TENSORFLOW_USE_SYCL
 // Partial specialization MatMulFunctor<Device=SYCLDevice, T>.
